@@ -164,8 +164,8 @@ const getBackendSummary = (
     igst: numberValue(total.igst),
     totalTax: roundMoney(
       numberValue(total.cgst) +
-        numberValue(total.sgst) +
-        numberValue(total.igst),
+      numberValue(total.sgst) +
+      numberValue(total.igst),
     ),
   };
 };
@@ -910,152 +910,8 @@ const StatewiseReport = () => {
           )}
         </div>
       </div>
-      {/* CUSTOM DATE RANGE */}
-      <form
-        onSubmit={applyDateRange}
-        className="rounded-xl border border-[#DCE6F2] bg-white p-4 shadow-sm"
-      >
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2 text-sm font-bold text-slate-900">
-            <CalendarDays size={17} className="text-[#2D6FE8]" />
-            Custom Date Range
-          </div>
-          <span className="text-xs text-slate-500" aria-live="polite">
-            {busy
-              ? "Updating report..."
-              : reportError
-                ? "Report unavailable"
-                : hasCustomRange
-                  ? `Period: ${reportPeriod}`
-                  : "API default period"}
-          </span>
-        </div>
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="w-full sm:w-48">
-            <label
-              htmlFor="statewise-from-date"
-              className="mb-1.5 block text-xs font-semibold text-slate-600"
-            >
-              From Date
-            </label>
-            <input
-              id="statewise-from-date"
-              type="date"
-              value={fromDate}
-              max={toDate || undefined}
-              onChange={(event) => setFromDate(event.target.value)}
-              disabled={controlsDisabled}
-              required
-              className="h-10 w-full rounded-lg border border-[#DCE6F2] bg-white px-3 text-sm text-slate-700 outline-none focus:border-[#2D6FE8] focus:ring-2 focus:ring-blue-100 disabled:opacity-60"
-            />
-          </div>
-          <div className="w-full sm:w-48">
-            <label
-              htmlFor="statewise-to-date"
-              className="mb-1.5 block text-xs font-semibold text-slate-600"
-            >
-              To Date
-            </label>
-            <input
-              id="statewise-to-date"
-              type="date"
-              value={toDate}
-              min={fromDate || undefined}
-              onChange={(event) => setToDate(event.target.value)}
-              disabled={controlsDisabled}
-              required
-              className="h-10 w-full rounded-lg border border-[#DCE6F2] bg-white px-3 text-sm text-slate-700 outline-none focus:border-[#2D6FE8] focus:ring-2 focus:ring-blue-100 disabled:opacity-60"
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={controlsDisabled || !fromDate || !toDate}
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-[#2D6FE8] px-5 text-sm font-semibold text-white hover:bg-[#1E40AF] disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {busy ? (
-              <Loader2 size={15} className="animate-spin" />
-            ) : (
-              <Search size={15} />
-            )}
-            Apply Filter
-          </button>
-          <button
-            type="button"
-            onClick={resetDateRange}
-            disabled={
-              controlsDisabled || (!fromDate && !toDate && !hasCustomRange)
-            }
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-[#DCE6F2] bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <RefreshCw size={15} /> Reset
-          </button>
-        </div>
-        {(fromDate !== (appliedRange.from || "") ||
-          toDate !== (appliedRange.to || "")) &&
-          !busy && (
-            <p className="mt-2 text-xs text-slate-500">
-              Click Apply Filter to update the report and exports.
-            </p>
-          )}
-      </form>
-      {reportError && (
-        <div
-          role="alert"
-          className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700"
-        >
-          {reportError} — use Refresh to retry.
-        </div>
-      )}
-      {/* API META */}
-      <div className="rounded-xl border border-[#DCE6F2] bg-white p-3 shadow-sm">
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
-          <div className="flex items-center gap-2">
-            <MapPin size={15} className="text-[#2D6FE8]" />
-            <span className="text-xs font-semibold text-slate-600">
-              Supplier State:
-            </span>
-            <span className="rounded-full bg-[#EAF3FF] px-3 py-1 text-xs font-semibold text-[#1E40AF]">
-              {valueOrDash(meta?.supplier_state)}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <CalendarDays size={14} className="text-slate-400" />
-            <span className="text-xs text-slate-600">API Period:</span>
-            <span className="text-xs font-semibold text-slate-700">
-              {busy ? "Loading period..." : reportError ? "—" : reportPeriod}
-            </span>
-          </div>
-        </div>
-        <div className="mt-3 border-t border-slate-100 pt-3">
-          <p className="mb-2 text-xs font-semibold text-slate-600">
-            Included Order Statuses
-          </p>
-          <div className="flex flex-wrap gap-1.5">
-            {meta?.statuses?.length ? (
-              meta.statuses.map((status) => (
-                <StatusBadge key={status} status={status} />
-              ))
-            ) : (
-              <span className="text-xs text-slate-400">—</span>
-            )}
-          </div>
-        </div>
-      </div>
-      {/* FINANCIAL SUMMARY */}
+
       <section className="space-y-3" aria-label="Statewise financial summary">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <h2 className="text-base font-bold text-slate-900">
-              Statewise Sales Overview
-            </h2>
-            <p className="mt-0.5 text-xs text-slate-500">
-              All matching records across the returned dataset · INR
-            </p>
-          </div>
-          <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-600">
-            {summary.records} records
-          </span>
-        </div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <div className="min-w-0 rounded-xl border border-[#BBDCFB] bg-[#EAF3FF] p-4 text-[#173B63] shadow-sm">
             <div className="flex items-center justify-between gap-2">
@@ -1097,7 +953,7 @@ const StatewiseReport = () => {
           />
         </div>
         {/* SALES BREAKDOWN */}
-        <div className="grid grid-cols-1 gap-3 xl:grid-cols-3">
+        {/* <div className="grid grid-cols-1 gap-3 xl:grid-cols-3">
           <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
             <h3 className="text-sm font-bold text-slate-900">
               Sales Breakdown
@@ -1167,32 +1023,159 @@ const StatewiseReport = () => {
               ))}
             </div>
           </div>
-        </div>
-        <p className="text-xs text-slate-500">
+        </div> */}
+        {/* <p className="text-xs text-slate-500">
           All financial values are taken from the Statewise Report API. Total
           GST is calculated as CGST + SGST + IGST. The API grand_total is used
           when no search is applied.
-        </p>
+        </p> */}
       </section>
-      {/* SEARCH */}
-      <div className="rounded-xl border border-[#DCE6F2] bg-white p-3 shadow-sm">
-        <div className="relative max-w-md">
-          <Search
-            size={16}
-            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-          />
-          <input
-            aria-label="Search Statewise Report"
-            value={search}
-            onChange={(event) => {
-              setSearch(event.target.value);
-              setCurrentPage(1);
-            }}
-            placeholder="Search state, product head, tax percentage..."
-            className="h-10 w-full rounded-lg border border-[#DCE6F2] bg-white pl-9 pr-3 text-sm text-gray-700 outline-none placeholder:text-gray-400 focus:border-[#2D6FE8] focus:ring-2 focus:ring-blue-100"
-          />
+
+
+      {/* CUSTOM DATE RANGE */}
+      <form
+        onSubmit={applyDateRange}
+        className="rounded-xl border border-[#DCE6F2] bg-white p-4 shadow-sm"
+      >
+        <div className="flex flex-wrap items-end gap-3">
+
+          {/* Search - First */}
+          <div className="min-w-[220px] flex-1">
+            <label className="mb-1.5 block text-xs font-semibold text-slate-600">
+              Search
+            </label>
+            <div className="relative">
+              <Search
+                size={16}
+                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+              />
+              <input
+                aria-label="Search Statewise Report"
+                value={search}
+                onChange={(event) => {
+                  setSearch(event.target.value);
+                  setCurrentPage(1);
+                }}
+                placeholder="Search state, product head, tax percentage..."
+                className="h-10 w-full rounded-lg border border-[#DCE6F2] bg-white pl-9 pr-3 text-sm text-gray-700 outline-none placeholder:text-gray-400 focus:border-[#2D6FE8] focus:ring-2 focus:ring-blue-100"
+              />
+            </div>
+          </div>
+
+          {/* From Date */}
+          <div className="w-full sm:w-40">
+            <label
+              htmlFor="statewise-from-date"
+              className="mb-1.5 block text-xs font-semibold text-slate-600"
+            >
+              From Date
+            </label>
+            <input
+              id="statewise-from-date"
+              type="date"
+              value={fromDate}
+              max={toDate || undefined}
+              onChange={(event) => setFromDate(event.target.value)}
+              disabled={controlsDisabled}
+              required
+              className="h-10 w-full rounded-lg border border-[#DCE6F2] bg-white px-3 text-sm text-slate-700 outline-none focus:border-[#2D6FE8] focus:ring-2 focus:ring-blue-100 disabled:opacity-60"
+            />
+          </div>
+
+          {/* To Date */}
+          <div className="w-full sm:w-40">
+            <label
+              htmlFor="statewise-to-date"
+              className="mb-1.5 block text-xs font-semibold text-slate-600"
+            >
+              To Date
+            </label>
+            <input
+              id="statewise-to-date"
+              type="date"
+              value={toDate}
+              min={fromDate || undefined}
+              onChange={(event) => setToDate(event.target.value)}
+              disabled={controlsDisabled}
+              required
+              className="h-10 w-full rounded-lg border border-[#DCE6F2] bg-white px-3 text-sm text-slate-700 outline-none focus:border-[#2D6FE8] focus:ring-2 focus:ring-blue-100 disabled:opacity-60"
+            />
+          </div>
+
+          {/* Apply Filter */}
+          <button
+            type="submit"
+            disabled={controlsDisabled || !fromDate || !toDate}
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-[#2D6FE8] px-5 text-sm font-semibold text-white hover:bg-[#1E40AF] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {busy ? (
+              <Loader2 size={15} className="animate-spin" />
+            ) : (
+              <Search size={15} />
+            )}
+            Apply Filter
+          </button>
+
+          {/* Reset */}
+          <button
+            type="button"
+            onClick={resetDateRange}
+            disabled={
+              controlsDisabled || (!fromDate && !toDate && !hasCustomRange)
+            }
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-[#DCE6F2] bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <RefreshCw size={15} />
+            Reset
+          </button>
+
         </div>
-      </div>
+
+
+      </form>
+      {reportError && (
+        <div
+          role="alert"
+          className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700"
+        >
+          {reportError} — use Refresh to retry.
+        </div>
+      )}
+      {/* API META */}
+      {/* <div className="rounded-xl border border-[#DCE6F2] bg-white p-3 shadow-sm">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+          <div className="flex items-center gap-2">
+            <MapPin size={15} className="text-[#2D6FE8]" />
+            <span className="text-xs font-semibold text-slate-600">
+              Supplier State:
+            </span>
+            <span className="rounded-full bg-[#EAF3FF] px-3 py-1 text-xs font-semibold text-[#1E40AF]">
+              {valueOrDash(meta?.supplier_state)}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <CalendarDays size={14} className="text-slate-400" />
+            <span className="text-xs text-slate-600">API Period:</span>
+            <span className="text-xs font-semibold text-slate-700">
+              {busy ? "Loading period..." : reportError ? "—" : reportPeriod}
+            </span>
+          </div>
+        </div>
+        <div className="mt-3 border-t border-slate-100 pt-3">
+          <p className="mb-2 text-xs font-semibold text-slate-600">
+            Included Order Statuses
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {meta?.statuses?.length ? (
+              meta.statuses.map((status) => (
+                <StatusBadge key={status} status={status} />
+              ))
+            ) : (
+              <span className="text-xs text-slate-400">—</span>
+            )}
+          </div>
+        </div>
+      </div> */} 
       {/* STATEWISE RECORDS */}
       <div className="overflow-hidden rounded-xl border border-[#DCE6F2] bg-white shadow-sm">
         <div className="flex flex-col justify-between gap-2 border-b border-[#DCE6F2] p-4 sm:flex-row sm:items-center">
@@ -1443,11 +1426,10 @@ const StatewiseReport = () => {
                   <div key={label} className="min-w-0">
                     <p className="text-xs text-slate-500">{label}</p>
                     <p
-                      className={`mt-1 break-words text-sm font-bold tabular-nums ${
-                        label === "Taxable Value"
+                      className={`mt-1 break-words text-sm font-bold tabular-nums ${label === "Taxable Value"
                           ? "text-[#1E40AF]"
                           : "text-slate-900"
-                      }`}
+                        }`}
                     >
                       {value}
                     </p>

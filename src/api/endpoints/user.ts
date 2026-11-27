@@ -110,11 +110,11 @@ export interface RegisteredUser {
   role: any | null;
   business_profile: BusinessProfile | null;
 
-  // ✅ NEW: Distributor related optional fields (as seen in response)
+  // Distributor related optional fields
   distributor_status?: string | null;
   distributor_profile?: any | null;
 
-  // ✅ NEW: payout info from response
+  // payout info from response
   ignite_payout?: {
     ba_id?: string;
     member_id?: number;
@@ -137,14 +137,46 @@ export interface RegisteredUser {
     ignite_error?: string | null;
   } | null;
 
-  // ✅ NEW: withdraw hold flag if backend returns it
+  // withdraw hold flag if backend returns it
   withdraw_hold?: boolean | number | null;
+}
+
+// =====================================================
+// PAGINATION
+// =====================================================
+
+export interface PaginationMeta {
+  current_page: number;
+  per_page: number;
+  total: number;
+  last_page: number;
+  next_page: string | null;
+  prev_page: string | null;
+}
+
+// Optional: backend can send overall counts (for stat cards / tab counts)
+export interface RegisteredUsersStats {
+  total?: number;
+  active?: number;
+  inactive?: number;
+  distributors?: number;
+  customers?: number;
+}
+
+export interface RegisteredUsersParams {
+  page?: number;
+  per_page?: number;
+  search?: string;
+  account_type?: "customer" | "distributor";
+  is_active?: 0 | 1;
 }
 
 export interface RegisteredUsersResponse {
   success: boolean;
   message: string;
   data: RegisteredUser[];
+  pagination?: PaginationMeta;
+  stats?: RegisteredUsersStats;
 }
 
 export interface RegisteredUserDetailResponse {
@@ -175,10 +207,10 @@ export interface DistributorStatusResponse {
   };
 }
 
-// ✅ NEW: Withdraw hold / release payload + response
+// Withdraw hold / release payload + response
 export interface WithdrawHoldRequest {
   from_date: string; // YYYY-MM-DD
-  to_date: string;   // YYYY-MM-DD
+  to_date: string; // YYYY-MM-DD
 }
 
 export interface WithdrawHoldResponse {
@@ -205,7 +237,7 @@ export interface WithdrawReleaseResponse {
   };
 }
 
-// ✅ Create Distributor Request/Response Types
+// Create Distributor Request/Response Types
 export interface CreateDistributorRequest {
   full_name: string;
   email: string;
@@ -216,7 +248,7 @@ export interface CreateDistributorRequest {
   date_of_birth: string;
   terms_condition: number;
 
-  // ✅ NEW: Distributor identifiers
+  // Distributor identifiers
   distributor_id: string;
   company_name: string;
   gst_in: string;
@@ -259,8 +291,11 @@ export interface CreateDistributorResponse {
 }
 
 export const userManagementApi = {
-  getRegisteredUsers: () =>
-    apiClient.get<RegisteredUsersResponse>("/admin/registered-users"),
+  // Backend pagination: GET /admin/registered-users?page=1&per_page=20&search=...
+  getRegisteredUsers: (params?: RegisteredUsersParams) =>
+    apiClient.get<RegisteredUsersResponse>("/admin/registered-users", {
+      params,
+    }),
 
   getUserById: (id: number) =>
     apiClient.get<RegisteredUserDetailResponse>(
@@ -280,18 +315,18 @@ export const userManagementApi = {
       },
     ),
 
-  // ✅ NEW: Create Distributor
+  // Create Distributor
   createDistributor: (data: CreateDistributorRequest) =>
     apiClient.post<CreateDistributorResponse>("/admin/users", data),
 
-  // ✅ NEW: Hold withdrawals for a date range
+  // Hold withdrawals for a date range
   holdDistributorWithdrawals: (id: number, payload: WithdrawHoldRequest) =>
     apiClient.post<WithdrawHoldResponse>(
       `/admin/distributors/${id}/withdraw-hold`,
       payload,
     ),
 
-  // ✅ NEW: Release withdrawals
+  // Release withdrawals
   releaseDistributorWithdrawals: (id: number) =>
     apiClient.post<WithdrawReleaseResponse>(
       `/admin/distributors/${id}/withdraw-release`,

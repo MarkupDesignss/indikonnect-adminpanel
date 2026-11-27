@@ -1,4 +1,5 @@
 "use client";
+
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Search,
@@ -20,13 +21,11 @@ import {
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import ExcelJS from "exceljs";
-import hsnReportApi, {
-  HsnReportItem,
-  HsnReportMeta,
-} from "../../api/endpoints/report/hsnReport";
+import hsnReportApi, { HsnReportItem } from "../../api/endpoints/report/hsnReport";
 import { usePermissions } from "../../pages/permissions/usePermissions";
 import logoApi from "../../api/endpoints/logoApi";
 import PermissionLoadingState from "@/components/common/PermissionLoadingState";
+
 /* ================= THEME ================= */
 const THEME = {
   primary: "#2D6FE8",
@@ -43,14 +42,18 @@ const THEME = {
   red: "#C23B32",
   redSoft: "#FEE2E2",
 };
+
 const DEFAULT_LOGO_URL =
   "https://www.markupdesigns.net/indikonnect/storage/logos/MmVFOudCiVU3Y8C0sf2gEEXna5jSKroCDj8xYMo0.png";
 const PER_PAGE = 100;
+
 /* ================= TYPES ================= */
 type RegistrationType = "registered" | "unregistered";
+
 interface HsnReportRow extends HsnReportItem {
   registrationType: RegistrationType;
 }
+
 type HsnSummary = {
   records: number;
   uniqueHsn: number;
@@ -62,75 +65,86 @@ type HsnSummary = {
   sgst: number;
   totalTax: number;
 };
+
 type ExportRow = (string | number)[];
+
 /* ================= HELPERS ================= */
 const numberValue = (value: number | string | null | undefined): number => {
   const parsed = Number(value ?? 0);
   return Number.isFinite(parsed) ? parsed : 0;
 };
+
 const roundMoney = (value: number) =>
   Math.round((value + Number.EPSILON) * 100) / 100;
+
 const money = (value: number | string | null | undefined) =>
   `₹${numberValue(value).toLocaleString("en-IN", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}`;
+
 const formatNumber = (value: number | string | null | undefined) =>
   numberValue(value).toLocaleString("en-IN", {
     maximumFractionDigits: 2,
   });
+
 const formatRate = (value: number | string | null | undefined) =>
   `${formatNumber(value)}%`;
+
 const valueOrDash = (value: unknown) =>
   value === null || value === undefined || value === "" ? "—" : String(value);
+
 const formatDate = (value: string | null | undefined) => {
   if (!value) return "—";
   const parsed = new Date(value.replace(" ", "T"));
-  if (Number.isNaN(parsed.getTime())) {
-    return value;
-  }
+  if (Number.isNaN(parsed.getTime())) return value;
   return parsed.toLocaleDateString("en-IN", {
     day: "2-digit",
     month: "short",
     year: "numeric",
   });
 };
+
 const formatDateInput = (date: Date) =>
-  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
-    2,
-    "0",
-  )}-${String(date.getDate()).padStart(2, "0")}`;
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(
+    date.getDate(),
+  ).padStart(2, "0")}`;
+
 const getTotalTax = (item: HsnReportItem) =>
   roundMoney(
     numberValue(item.integrated_tax_amount) +
-    numberValue(item.central_tax_amount) +
-    numberValue(item.state_ut_tax_amount),
+      numberValue(item.central_tax_amount) +
+      numberValue(item.state_ut_tax_amount),
   );
+
 const getHsnRows = (data: {
   registered: HsnReportItem[];
   unregistered: HsnReportItem[];
 }): HsnReportRow[] => [
-    ...(Array.isArray(data.registered)
-      ? data.registered.map((item) => ({
+  ...(Array.isArray(data.registered)
+    ? data.registered.map((item) => ({
         ...item,
         registrationType: "registered" as const,
       }))
-      : []),
-    ...(Array.isArray(data.unregistered)
-      ? data.unregistered.map((item) => ({
+    : []),
+  ...(Array.isArray(data.unregistered)
+    ? data.unregistered.map((item) => ({
         ...item,
         registrationType: "unregistered" as const,
       }))
-      : []),
-  ];
+    : []),
+];
+
 // Keep registered rows first, preserving the API order within each group.
 const registeredFirst = (items: HsnReportRow[]): HsnReportRow[] => [
   ...items.filter((item) => item.registrationType === "registered"),
   ...items.filter((item) => item.registrationType === "unregistered"),
 ];
+
 const summarizeHsn = (items: HsnReportRow[]): HsnSummary => {
   const sum = (selector: (item: HsnReportRow) => number) =>
     roundMoney(items.reduce((total, item) => total + selector(item), 0));
+
   return {
     records: items.length,
     uniqueHsn: new Set(
@@ -145,6 +159,7 @@ const summarizeHsn = (items: HsnReportRow[]): HsnSummary => {
     totalTax: sum((item) => getTotalTax(item)),
   };
 };
+
 /* ================= EXCEL / CSV MAPPING ================= */
 const HSN_HEADERS = [
   "Item Name",
@@ -158,6 +173,7 @@ const HSN_HEADERS = [
   "Central Tax Amount",
   "State/UT Tax Amount",
 ];
+
 const buildHsnExportRows = (items: HsnReportRow[]): ExportRow[] =>
   items.map((item) => [
     item.item_name || "",
@@ -171,6 +187,7 @@ const buildHsnExportRows = (items: HsnReportRow[]): ExportRow[] =>
     numberValue(item.central_tax_amount),
     numberValue(item.state_ut_tax_amount),
   ]);
+
 const HSN_MONEY_COLUMNS = new Set([
   "Total Value",
   "Taxable Value",
@@ -178,34 +195,54 @@ const HSN_MONEY_COLUMNS = new Set([
   "Central Tax Amount",
   "State/UT Tax Amount",
 ]);
+
 const buildHsnExportSections = (items: HsnReportRow[]) => {
   const groups: { title: string; type: RegistrationType }[] = [
     { title: "Registered", type: "registered" },
     { title: "Unregistered", type: "unregistered" },
   ];
+
   return groups
     .map(({ title, type }) => ({
       title,
-      rows: buildHsnExportRows(items.filter((item) => item.registrationType === type)),
+      rows: buildHsnExportRows(
+        items.filter((item) => item.registrationType === type),
+      ),
     }))
     .filter((section) => section.rows.length > 0);
 };
+
 const buildHsnTotalRow = (items: HsnReportRow[]): ExportRow => {
   const totals = summarizeHsn(items);
-  return ["GRAND TOTAL", "", "", totals.quantity, totals.totalValue, "",
-    totals.taxableValue, totals.igst, totals.cgst, totals.sgst];
+  return [
+    "GRAND TOTAL",
+    "",
+    "",
+    totals.quantity,
+    totals.totalValue,
+    "",
+    totals.taxableValue,
+    totals.igst,
+    totals.cgst,
+    totals.sgst,
+  ];
 };
+
 const padHsnExportRow = (values: ExportRow): ExportRow =>
   HSN_HEADERS.map((_, index) => values[index] ?? "");
+
 const buildGroupedCsvRows = (items: HsnReportRow[]): ExportRow[] => {
   const rows: ExportRow[] = [];
+
   buildHsnExportSections(items).forEach((section, index) => {
     if (index > 0) rows.push(padHsnExportRow([]), padHsnExportRow([]));
     rows.push(padHsnExportRow([section.title]), HSN_HEADERS, ...section.rows);
   });
+
   rows.push(padHsnExportRow([]), buildHsnTotalRow(items));
   return rows;
 };
+
 const csvCell = (value: unknown): string => {
   let text = value == null ? "" : String(value);
   // Prevent spreadsheet formula execution for text values.
@@ -214,6 +251,7 @@ const csvCell = (value: unknown): string => {
   }
   return `"${text.replace(/"/g, '""')}"`;
 };
+
 const downloadBlob = (blob: Blob, filename: string) => {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
@@ -226,6 +264,7 @@ const downloadBlob = (blob: Blob, filename: string) => {
     URL.revokeObjectURL(url);
   }, 1000);
 };
+
 /* ================= SUMMARY CARD ================= */
 function SummaryCard({
   title,
@@ -260,9 +299,11 @@ function SummaryCard({
     </div>
   );
 }
+
 /* ================= REGISTRATION BADGE ================= */
 function RegistrationBadge({ type }: { type: RegistrationType }) {
   const registered = type === "registered";
+
   return (
     <span
       className="inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-semibold"
@@ -275,6 +316,7 @@ function RegistrationBadge({ type }: { type: RegistrationType }) {
     </span>
   );
 }
+
 /* ================= TAX DETAILS ================= */
 function TaxBreakdownDetails({ item }: { item: HsnReportItem }) {
   const taxItems = [
@@ -282,6 +324,7 @@ function TaxBreakdownDetails({ item }: { item: HsnReportItem }) {
     ["CGST", item.central_tax_amount],
     ["SGST / UTGST", item.state_ut_tax_amount],
   ] as const;
+
   return (
     <div className="min-w-0 space-y-1.5">
       {taxItems.map(([label, amount]) => (
@@ -301,6 +344,7 @@ function TaxBreakdownDetails({ item }: { item: HsnReportItem }) {
     </div>
   );
 }
+
 /* ================= MAIN COMPONENT ================= */
 const HsnReport = () => {
   const {
@@ -308,20 +352,25 @@ const HsnReport = () => {
     isSuperAdmin,
     loading: permissionsLoading,
   } = usePermissions();
+
   /* ================= PERMISSIONS ================= */
   const canViewReport = useMemo(() => {
     if (isSuperAdmin) return true;
     return hasPermission("hsn-report.view");
   }, [isSuperAdmin, hasPermission]);
+
   const canExport = useMemo(() => {
     if (isSuperAdmin) return true;
     return hasPermission("hsn-report.export");
   }, [isSuperAdmin, hasPermission]);
+
   /* ================= LOGO ================= */
   const [logoUrl, setLogoUrl] = useState<string | null>(DEFAULT_LOGO_URL);
   const [logoLoading, setLogoLoading] = useState(true);
+
   useEffect(() => {
     let cancelled = false;
+
     const loadLogo = async () => {
       try {
         const response: any = await logoApi.getLogo();
@@ -337,25 +386,22 @@ const HsnReport = () => {
           (value) =>
             typeof value === "string" && /^https?:\/\//i.test(value.trim()),
         );
-        if (!cancelled && found) {
-          setLogoUrl(found.trim());
-        }
+        if (!cancelled && found) setLogoUrl(found.trim());
       } catch (error) {
         console.error("Logo API error:", error);
       } finally {
-        if (!cancelled) {
-          setLogoLoading(false);
-        }
+        if (!cancelled) setLogoLoading(false);
       }
     };
+
     void loadLogo();
     return () => {
       cancelled = true;
     };
   }, []);
+
   /* ================= REPORT STATE ================= */
   const [reports, setReports] = useState<HsnReportRow[]>([]);
-  const [meta, setMeta] = useState<HsnReportMeta | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -371,6 +417,7 @@ const HsnReport = () => {
     toDate: "",
   });
   const [currentPage, setCurrentPage] = useState(1);
+
   /* ================= FETCH REPORT ================= */
   const fetchReports = useCallback(
     async (showLoader = true) => {
@@ -380,10 +427,12 @@ const HsnReport = () => {
         } else {
           setRefreshing(true);
         }
+
         const response = await hsnReportApi.getAll({
           from_date: appliedDates.fromDate || undefined,
           to_date: appliedDates.toDate || undefined,
         });
+
         if (response.success) {
           const registered = Array.isArray(response.data?.registered)
             ? response.data.registered
@@ -391,16 +440,15 @@ const HsnReport = () => {
           const unregistered = Array.isArray(response.data?.unregistered)
             ? response.data.unregistered
             : [];
+
           setReports(
             getHsnRows({
               registered,
               unregistered,
             }),
           );
-          setMeta(response.meta ?? null);
         } else {
           setReports([]);
-          setMeta(null);
           toast.error(response.message || "Unable to fetch HSN report");
         }
       } catch (error: any) {
@@ -415,6 +463,7 @@ const HsnReport = () => {
     },
     [appliedDates],
   );
+
   useEffect(() => {
     if (permissionsLoading) return;
     if (!canViewReport) {
@@ -423,9 +472,11 @@ const HsnReport = () => {
     }
     void fetchReports(true);
   }, [permissionsLoading, canViewReport, fetchReports]);
+
   /* ================= SEARCH & FILTER ================= */
   const filteredReports = useMemo(() => {
     const query = search.trim().toLowerCase();
+
     const matchingRows = reports.filter((item) => {
       const searchable = [
         item.item_name,
@@ -435,28 +486,30 @@ const HsnReport = () => {
         item.total_quantity,
         item.registrationType,
       ];
+
       const matchesSearch =
         !query ||
         searchable.some((value) =>
-          String(value ?? "")
-            .toLowerCase()
-            .includes(query),
+          String(value ?? "").toLowerCase().includes(query),
         );
       const matchesRegistration =
         gstFilter === "all" || item.registrationType === gstFilter;
+
       return matchesSearch && matchesRegistration;
     });
+
     return registeredFirst(matchingRows);
   }, [reports, search, gstFilter]);
+
   /* ================= PAGINATION ================= */
   const totalRecords = filteredReports.length;
   const lastPage = Math.max(1, Math.ceil(totalRecords / PER_PAGE));
   const displayPage = Math.min(currentPage, lastPage);
+
   useEffect(() => {
-    if (currentPage > lastPage) {
-      setCurrentPage(lastPage);
-    }
+    if (currentPage > lastPage) setCurrentPage(lastPage);
   }, [currentPage, lastPage]);
+
   const pageReports = useMemo(
     () =>
       filteredReports.slice(
@@ -465,55 +518,37 @@ const HsnReport = () => {
       ),
     [filteredReports, displayPage],
   );
-  const startRecord = totalRecords === 0 ? 0 : (displayPage - 1) * PER_PAGE + 1;
+
+  const startRecord =
+    totalRecords === 0 ? 0 : (displayPage - 1) * PER_PAGE + 1;
   const endRecord = Math.min(displayPage * PER_PAGE, totalRecords);
+
   /* ================= SUMMARY ================= */
   const summary = useMemo(
     () => summarizeHsn(filteredReports),
     [filteredReports],
   );
-  const pageSummary = useMemo(() => summarizeHsn(pageReports), [pageReports]);
-  const registeredSummary = useMemo(
-    () =>
-      summarizeHsn(
-        filteredReports.filter(
-          (item) => item.registrationType === "registered",
-        ),
-      ),
-    [filteredReports],
-  );
-  const unregisteredSummary = useMemo(
-    () =>
-      summarizeHsn(
-        filteredReports.filter(
-          (item) => item.registrationType === "unregistered",
-        ),
-      ),
-    [filteredReports],
-  );
+
   /* ================= APPLY / CLEAR FILTERS ================= */
   const applyFilters = () => {
     if (fromDate && toDate && fromDate > toDate) {
       toast.error("From date cannot be greater than To date");
       return;
     }
+
     setCurrentPage(1);
-    setAppliedDates({
-      fromDate,
-      toDate,
-    });
+    setAppliedDates({ fromDate, toDate });
   };
+
   const clearFilters = () => {
     setSearch("");
     setGstFilter("all");
     setFromDate("");
     setToDate("");
     setCurrentPage(1);
-    setAppliedDates({
-      fromDate: "",
-      toDate: "",
-    });
+    setAppliedDates({ fromDate: "", toDate: "" });
   };
+
   /* ================= EXCEL EXPORT ================= */
   const exportExcel = async () => {
     if (!canExport) {
@@ -521,6 +556,7 @@ const HsnReport = () => {
       return;
     }
     if (exporting || exportingCsv) return;
+
     setExporting(true);
     try {
       const exportItems = registeredFirst(filteredReports);
@@ -528,62 +564,127 @@ const HsnReport = () => {
         toast.error("No HSN records available to export");
         return;
       }
+
       const workbook = new ExcelJS.Workbook();
       workbook.creator = "IndieKonnect";
       workbook.created = new Date();
+
       const sheet = workbook.addWorksheet("HSN Report", {
         views: [{ showGridLines: false }],
         properties: { defaultRowHeight: 23 },
-        pageSetup: { orientation: "landscape", fitToPage: true, fitToWidth: 1, fitToHeight: 0 },
+        pageSetup: {
+          orientation: "landscape",
+          fitToPage: true,
+          fitToWidth: 1,
+          fitToHeight: 0,
+        },
       });
+
       const widths = [34, 16, 20, 18, 21, 12, 21, 25, 24, 25];
       sheet.columns = HSN_HEADERS.map((_, index) => ({
         key: `column_${index}`,
         width: widths[index],
       }));
+
       const edge: Partial<ExcelJS.Border> = {
-        style: "thin", color: { argb: "FFD3DFEB" },
+        style: "thin",
+        color: { argb: "FFD3DFEB" },
       };
-      const styleDataRow = (row: ExcelJS.Row, index: number, total = false) => {
+
+      const styleDataRow = (
+        row: ExcelJS.Row,
+        index: number,
+        total = false,
+      ) => {
         row.height = 26;
         HSN_HEADERS.forEach((heading, columnIndex) => {
           const cell = row.getCell(columnIndex + 1);
-          cell.font = { name: "Calibri", size: 11, bold: total, color: { argb: "FF253C52" } };
-          cell.fill = {
-            type: "pattern", pattern: "solid",
-            fgColor: { argb: total ? "FFDCEEFF" : index % 2 === 0 ? "FFFFFFFF" : "FFF2F6FA" },
+          cell.font = {
+            name: "Calibri",
+            size: 11,
+            bold: total,
+            color: { argb: "FF253C52" },
           };
-          cell.alignment = { vertical: "middle", horizontal: columnIndex >= 3 ? "right" : "left", wrapText: true };
+          cell.fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: {
+              argb: total
+                ? "FFDCEEFF"
+                : index % 2 === 0
+                  ? "FFFFFFFF"
+                  : "FFF2F6FA",
+            },
+          };
+          cell.alignment = {
+            vertical: "middle",
+            horizontal: columnIndex >= 3 ? "right" : "left",
+            wrapText: true,
+          };
           cell.border = { top: edge, bottom: edge, left: edge, right: edge };
+
           if (heading === "HSN" || heading === "UQC") cell.numFmt = "@";
-          else if (heading === "Total Quantity" || heading === "Rate") cell.numFmt = "0.##";
-          else if (HSN_MONEY_COLUMNS.has(heading)) cell.numFmt = "#,##0.00;[Red](#,##0.00);0.00";
+          else if (heading === "Total Quantity" || heading === "Rate") {
+            cell.numFmt = "0.##";
+          } else if (HSN_MONEY_COLUMNS.has(heading)) {
+            cell.numFmt = "#,##0.00;[Red](#,##0.00);0.00";
+          }
         });
       };
+
       buildHsnExportSections(exportItems).forEach((section, index) => {
         if (index > 0) {
           sheet.addRow([]);
           sheet.addRow([]);
         }
+
         const title = sheet.addRow([section.title]);
         sheet.mergeCells(title.number, 1, title.number, HSN_HEADERS.length);
         title.height = 30;
         const titleCell = title.getCell(1);
-        titleCell.font = { name: "Calibri", size: 13, bold: true, color: { argb: "FF173B63" } };
-        titleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFEAF3FF" } };
+        titleCell.font = {
+          name: "Calibri",
+          size: 13,
+          bold: true,
+          color: { argb: "FF173B63" },
+        };
+        titleCell.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "FFEAF3FF" },
+        };
         titleCell.alignment = { horizontal: "center", vertical: "middle" };
+
         const header = sheet.addRow(HSN_HEADERS);
         header.height = 34;
         header.eachCell((cell) => {
-          cell.font = { name: "Calibri", size: 11, bold: true, color: { argb: "FFFFFFFF" } };
-          cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF173B63" } };
-          cell.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
+          cell.font = {
+            name: "Calibri",
+            size: 11,
+            bold: true,
+            color: { argb: "FFFFFFFF" },
+          };
+          cell.fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: "FF173B63" },
+          };
+          cell.alignment = {
+            horizontal: "center",
+            vertical: "middle",
+            wrapText: true,
+          };
           cell.border = { top: edge, bottom: edge, left: edge, right: edge };
         });
-        section.rows.forEach((values, rowIndex) => styleDataRow(sheet.addRow(values), rowIndex));
+
+        section.rows.forEach((values, rowIndex) =>
+          styleDataRow(sheet.addRow(values), rowIndex),
+        );
       });
+
       sheet.addRow([]);
       styleDataRow(sheet.addRow(buildHsnTotalRow(exportItems)), 0, true);
+
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([new Uint8Array(buffer)], {
         type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -599,6 +700,7 @@ const HsnReport = () => {
       setExporting(false);
     }
   };
+
   /* ================= CSV EXPORT ================= */
   const exportCsv = async () => {
     if (!canExport) {
@@ -606,6 +708,7 @@ const HsnReport = () => {
       return;
     }
     if (exporting || exportingCsv) return;
+
     setExportingCsv(true);
     try {
       const exportItems = registeredFirst(filteredReports);
@@ -613,6 +716,7 @@ const HsnReport = () => {
         toast.error("No HSN records available to export");
         return;
       }
+
       const csv = buildGroupedCsvRows(exportItems)
         .map((row) => row.map(csvCell).join(","))
         .join("\r\n");
@@ -630,11 +734,14 @@ const HsnReport = () => {
       setExportingCsv(false);
     }
   };
+
   /* ================= LOADING / PERMISSION ================= */
   const pageLoading = permissionsLoading || logoLoading;
+
   if (pageLoading) {
     return <PermissionLoadingState logoUrl={logoUrl} />;
   }
+
   if (!canViewReport) {
     return (
       <div className="flex min-h-[60vh] w-full items-center justify-center bg-[#F4F8FD] p-4">
@@ -648,13 +755,12 @@ const HsnReport = () => {
       </div>
     );
   }
+
   /* ================= MAIN UI ================= */
   return (
     <div
       className="min-h-screen space-y-5 p-3 sm:p-5 lg:p-6"
-      style={{
-        background: THEME.background,
-      }}
+      style={{ background: THEME.background }}
     >
       {/* HEADER */}
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
@@ -672,6 +778,7 @@ const HsnReport = () => {
             values and GST amounts.
           </p>
         </div>
+
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
@@ -679,9 +786,13 @@ const HsnReport = () => {
             disabled={refreshing || loading}
             className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-[#DCE6F2] bg-white px-4 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:opacity-60"
           >
-            <RefreshCw size={15} className={refreshing ? "animate-spin" : ""} />
+            <RefreshCw
+              size={15}
+              className={refreshing ? "animate-spin" : ""}
+            />
             Refresh
           </button>
+
           {canExport && (
             <button
               type="button"
@@ -697,6 +808,7 @@ const HsnReport = () => {
               {exportingCsv ? "Exporting CSV..." : "Export CSV"}
             </button>
           )}
+
           {canExport && (
             <button
               type="button"
@@ -714,47 +826,9 @@ const HsnReport = () => {
           )}
         </div>
       </div>
-      {/* API META */}
-      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[#DCE6F2] bg-white p-3 shadow-sm">
-        <span className="text-xs font-semibold text-slate-600">
-          Supplier State:
-        </span>
-        <span className="rounded-full bg-[#EAF3FF] px-3 py-1 text-xs font-semibold text-[#1E40AF]">
-          {valueOrDash(meta?.supplier_state)}
-        </span>
-        <span className="ml-1 text-xs font-semibold text-slate-600">
-          Included Order Statuses:
-        </span>
-        {meta?.statuses?.length ? (
-          <div className="flex flex-wrap gap-1.5">
-            {meta.statuses.map((status) => (
-              <span
-                key={status}
-                className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-semibold capitalize text-slate-600"
-              >
-                {status.replace(/_/g, " ")}
-              </span>
-            ))}
-          </div>
-        ) : (
-          <span className="text-xs text-slate-400">—</span>
-        )}
-      </div>
+
       {/* EXECUTIVE SUMMARY */}
       <section className="space-y-3" aria-label="HSN financial summary">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <h2 className="text-base font-bold text-slate-900">
-              HSN Sales Overview
-            </h2>
-            <p className="mt-0.5 text-xs text-slate-500">
-              All matching HSN records · INR
-            </p>
-          </div>
-          <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-600">
-            {summary.records.toLocaleString("en-IN")} records
-          </span>
-        </div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <div className="min-w-0 rounded-xl border border-[#BBDCFB] bg-[#EAF3FF] p-4 text-[#173B63] shadow-sm">
             <div className="flex items-center justify-between gap-2">
@@ -772,6 +846,7 @@ const HsnReport = () => {
               Total invoice value including tax
             </p>
           </div>
+
           <SummaryCard
             title="Taxable Value"
             value={money(summary.taxableValue)}
@@ -797,106 +872,15 @@ const HsnReport = () => {
             bg="#DCFCE7"
           />
         </div>
-        {/* REGISTRATION BREAKDOWN */}
-        <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
-          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-            <div className="flex items-center justify-between gap-2">
-              <h3 className="text-sm font-bold text-slate-900">
-                Registered Sales
-              </h3>
-              <span className="rounded-full bg-green-100 px-2.5 py-1 text-xs font-semibold text-green-700">
-                {registeredSummary.records} Records
-              </span>
-            </div>
-            <div className="mt-3 grid grid-cols-2 gap-3">
-              <div>
-                <p className="text-xs text-slate-500">Total Value</p>
-                <p className="mt-1 break-words text-sm font-bold text-slate-900">
-                  {money(registeredSummary.totalValue)}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-slate-500">Taxable Value</p>
-                <p className="mt-1 break-words text-sm font-bold text-slate-900">
-                  {money(registeredSummary.taxableValue)}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-slate-500">Total Tax</p>
-                <p className="mt-1 break-words text-sm font-bold text-slate-900">
-                  {money(registeredSummary.totalTax)}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-slate-500">Quantity</p>
-                <p className="mt-1 text-sm font-bold text-slate-900">
-                  {formatNumber(registeredSummary.quantity)}
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-            <div className="flex items-center justify-between gap-2">
-              <h3 className="text-sm font-bold text-slate-900">
-                Unregistered Sales
-              </h3>
-              <span className="rounded-full bg-purple-100 px-2.5 py-1 text-xs font-semibold text-purple-700">
-                {unregisteredSummary.records} Records
-              </span>
-            </div>
-            <div className="mt-3 grid grid-cols-2 gap-3">
-              <div>
-                <p className="text-xs text-slate-500">Total Value</p>
-                <p className="mt-1 break-words text-sm font-bold text-slate-900">
-                  {money(unregisteredSummary.totalValue)}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-slate-500">Taxable Value</p>
-                <p className="mt-1 break-words text-sm font-bold text-slate-900">
-                  {money(unregisteredSummary.taxableValue)}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-slate-500">Total Tax</p>
-                <p className="mt-1 break-words text-sm font-bold text-slate-900">
-                  {money(unregisteredSummary.totalTax)}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-slate-500">Quantity</p>
-                <p className="mt-1 text-sm font-bold text-slate-900">
-                  {formatNumber(unregisteredSummary.quantity)}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-        {/* GST BREAKDOWN */}
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-          <h3 className="text-sm font-bold text-slate-900">GST Breakdown</h3>
-          <div className="mt-3 grid grid-cols-2 gap-4 sm:grid-cols-3">
-            {[
-              ["IGST", summary.igst],
-              ["CGST", summary.cgst],
-              ["SGST / UTGST", summary.sgst],
-            ].map(([label, value]) => (
-              <div key={String(label)}>
-                <p className="text-xs text-slate-500">{label}</p>
-                <p className="mt-1 break-words text-sm font-bold text-slate-900 tabular-nums">
-                  {money(value as number)}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
       </section>
+
       {/* SEARCH & FILTERS */}
       <div className="rounded-xl border border-[#DCE6F2] bg-white p-4 shadow-sm">
         <div className="mb-4 flex items-center gap-2">
           <Filter size={17} className="text-[#2D6FE8]" />
           <h2 className="text-sm font-bold text-gray-800">Search & Filters</h2>
         </div>
+
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(220px,1.5fr)_1fr_1fr_1fr_auto]">
           <div className="relative">
             <Search
@@ -913,6 +897,7 @@ const HsnReport = () => {
               className="h-10 w-full rounded-lg border border-[#DCE6F2] bg-white pl-9 pr-3 text-sm text-gray-700 outline-none placeholder:text-gray-400 focus:border-[#2D6FE8] focus:ring-2 focus:ring-blue-100"
             />
           </div>
+
           <select
             aria-label="GST registration filter"
             value={gstFilter}
@@ -928,6 +913,7 @@ const HsnReport = () => {
             <option value="registered">Registered</option>
             <option value="unregistered">Unregistered</option>
           </select>
+
           <div className="relative">
             <CalendarDays
               size={15}
@@ -936,10 +922,12 @@ const HsnReport = () => {
             <input
               type="date"
               value={fromDate}
+              max={toDate || undefined}
               onChange={(event) => setFromDate(event.target.value)}
               className="h-10 w-full rounded-lg border border-[#DCE6F2] bg-white pl-9 pr-2 text-sm text-gray-700 outline-none focus:border-[#2D6FE8]"
             />
           </div>
+
           <div className="relative">
             <CalendarDays
               size={15}
@@ -948,10 +936,12 @@ const HsnReport = () => {
             <input
               type="date"
               value={toDate}
+              min={fromDate || undefined}
               onChange={(event) => setToDate(event.target.value)}
               className="h-10 w-full rounded-lg border border-[#DCE6F2] bg-white pl-9 pr-2 text-sm text-gray-700 outline-none focus:border-[#2D6FE8]"
             />
           </div>
+
           <div className="flex gap-2">
             <button
               type="button"
@@ -973,6 +963,7 @@ const HsnReport = () => {
           </div>
         </div>
       </div>
+
       {/* HSN RECORDS */}
       <div className="overflow-hidden rounded-xl border border-[#DCE6F2] bg-white shadow-sm">
         <div className="flex flex-col justify-between gap-2 border-b border-[#DCE6F2] p-4 sm:flex-row sm:items-center">
@@ -986,6 +977,7 @@ const HsnReport = () => {
             {filteredReports.length} Item Rows
           </span>
         </div>
+
         {loading ? (
           <div className="flex min-h-[280px] flex-col items-center justify-center">
             <Loader2 size={32} className="animate-spin text-[#2D6FE8]" />
@@ -1016,10 +1008,11 @@ const HsnReport = () => {
           <>
             {/* DESKTOP TABLE */}
             <div className="hidden w-full overflow-x-auto xl:block">
-              <table className="w-full min-w-[1320px] border-collapse text-left">
+              <table className="w-full min-w-[1380px] border-collapse text-left">
                 <thead>
                   <tr className="bg-[#F7FAFE]">
                     {[
+                      "S.No",
                       "Registration",
                       "Item Name",
                       "HSN Code",
@@ -1035,7 +1028,9 @@ const HsnReport = () => {
                     ].map((heading) => (
                       <th
                         key={heading}
-                        className="whitespace-normal break-words border-b border-[#DCE6F2] px-3 py-3 text-xs font-bold uppercase tracking-wide text-gray-500"
+                        className={`whitespace-normal break-words border-b border-[#DCE6F2] px-3 py-3 text-xs font-bold uppercase tracking-wide text-gray-500 ${
+                          heading === "S.No" ? "text-center" : ""
+                        }`}
                       >
                         {heading}
                       </th>
@@ -1048,6 +1043,12 @@ const HsnReport = () => {
                       key={`${item.registrationType}-${item.hsn}-${item.item_name}-${index}`}
                       className="border-b border-gray-100 transition last:border-0 hover:bg-[#F8FBFF]"
                     >
+                      {/* SERIAL NUMBER */}
+                      <td className="px-3 py-3 text-center align-top">
+                        <span className="inline-flex h-7 min-w-7 items-center justify-center rounded-md bg-[#EAF3FF] px-2 text-xs font-bold text-[#2D6FE8]">
+                          {startRecord + index}
+                        </span>
+                      </td>
                       <td className="px-3 py-3 align-top">
                         <RegistrationBadge type={item.registrationType} />
                       </td>
@@ -1111,6 +1112,7 @@ const HsnReport = () => {
                 </tbody>
               </table>
             </div>
+
             {/* MOBILE / TABLET CARDS */}
             <div className="space-y-3 p-3 xl:hidden">
               {pageReports.map((item, index) => (
@@ -1120,16 +1122,23 @@ const HsnReport = () => {
                 >
                   <div className="p-4">
                     <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
-                          Item Name
-                        </p>
-                        <p className="mt-1 break-words text-sm font-bold text-gray-900">
-                          {valueOrDash(item.item_name)}
-                        </p>
+                      <div className="flex min-w-0 items-start gap-2">
+                        {/* SERIAL NUMBER */}
+                        <span className="inline-flex h-7 min-w-7 shrink-0 items-center justify-center rounded-md bg-[#EAF3FF] px-2 text-xs font-bold text-[#2D6FE8]">
+                          {startRecord + index}
+                        </span>
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                            Item Name
+                          </p>
+                          <p className="mt-1 break-words text-sm font-bold text-gray-900">
+                            {valueOrDash(item.item_name)}
+                          </p>
+                        </div>
                       </div>
                       <RegistrationBadge type={item.registrationType} />
                     </div>
+
                     <div className="mt-3 grid grid-cols-2 gap-3 rounded-lg bg-[#F7FAFE] p-3">
                       <div>
                         <p className="text-xs text-gray-400">HSN Code</p>
@@ -1156,6 +1165,7 @@ const HsnReport = () => {
                         </p>
                       </div>
                     </div>
+
                     <div className="mt-3 grid grid-cols-2 gap-3">
                       <div>
                         <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
@@ -1174,6 +1184,7 @@ const HsnReport = () => {
                         </p>
                       </div>
                     </div>
+
                     <div className="mt-4 rounded-lg border border-[#DCE6F2] bg-[#F7FAFE] p-3">
                       <p className="mb-3 text-xs font-bold uppercase tracking-wide text-gray-600">
                         GST Tax Breakdown
@@ -1184,39 +1195,7 @@ const HsnReport = () => {
                 </div>
               ))}
             </div>
-            {/* CURRENT PAGE TOTALS */}
-            <div className="border-t border-slate-200 bg-[#F1F6FB] px-4 py-4">
-              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                <h3 className="text-sm font-bold text-slate-900">
-                  Current Page Totals
-                </h3>
-                <span className="text-xs text-slate-500">
-                  {pageReports.length} visible HSN records
-                </span>
-              </div>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3 xl:grid-cols-6">
-                {[
-                  ["Quantity", formatNumber(pageSummary.quantity)],
-                  ["Taxable Value", money(pageSummary.taxableValue)],
-                  ["IGST", money(pageSummary.igst)],
-                  ["CGST", money(pageSummary.cgst)],
-                  ["SGST / UTGST", money(pageSummary.sgst)],
-                  ["Total Value", money(pageSummary.totalValue)],
-                ].map(([label, value]) => (
-                  <div key={label} className="min-w-0">
-                    <p className="text-xs text-slate-500">{label}</p>
-                    <p
-                      className={`mt-1 break-words text-sm font-bold tabular-nums ${label === "Total Value"
-                          ? "text-[#1E40AF]"
-                          : "text-slate-900"
-                        }`}
-                    >
-                      {value}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
+
             {/* PAGINATION */}
             <div className="flex flex-col justify-between gap-3 border-t border-[#DCE6F2] px-4 py-3 sm:flex-row sm:items-center">
               <p className="text-xs text-gray-500">
@@ -1232,11 +1211,14 @@ const HsnReport = () => {
                   ({pageReports.length} rows on this page)
                 </span>
               </p>
+
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   disabled={displayPage <= 1 || loading}
-                  onClick={() => setCurrentPage(Math.max(1, displayPage - 1))}
+                  onClick={() =>
+                    setCurrentPage(Math.max(1, displayPage - 1))
+                  }
                   className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#DCE6F2] text-gray-600 hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-40"
                   aria-label="Previous page"
                 >
@@ -1264,4 +1246,5 @@ const HsnReport = () => {
     </div>
   );
 };
+
 export default HsnReport;

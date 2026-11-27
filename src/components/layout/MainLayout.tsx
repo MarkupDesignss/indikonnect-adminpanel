@@ -209,21 +209,6 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    key: "inventory",
-    label: "Inventory",
-    match: [
-      "inventory",
-      "stock",
-      "product",
-      "item",
-      "sku",
-      "catalog",
-      "location",
-      "bin",
-      "warehouse",
-    ],
-  },
-  {
     key: "finance",
     label: "Order finance",
     match: [
@@ -246,41 +231,6 @@ const NAV_GROUPS: NavGroup[] = [
       "cooloff",
     ],
   },
-
-  // ===================================================
-  // REPORTS GROUP
-  // Separate sidebar heading
-  // ===================================================
-  {
-    key: "reports",
-    label: "Report",
-    match: [
-      "report",
-      "reports",
-    ],
-  },
-
-  {
-    key: "sales",
-    label: "Sales",
-    match: ["sales"],
-  },
-  {
-    key: "content",
-    label: "Content",
-    match: [
-      "blog",
-      "cms",
-      "content",
-      "faq",
-      "reels",
-      "testimonial",
-      "landing",
-      "header",
-      "footer",
-      "notification",
-    ],
-  },
   {
     key: "admin",
     label: "Administration",
@@ -296,6 +246,52 @@ const NAV_GROUPS: NavGroup[] = [
       "audit",
       "profile",
       "correction",
+    ],
+  },
+  {
+    key: "inventory",
+    label: "Inventory",
+    match: [
+      "inventory",
+      "stock",
+      "product",
+      "item",
+      "sku",
+      "catalog",
+      "location",
+      "bin",
+      "warehouse",
+    ],
+  },
+  {
+    key: "sales",
+    label: "Sales",
+    match: ["sales"],
+  },
+
+
+  // ===================================================
+  // OTHER GROUPS — kept after the requested sections
+  // ===================================================
+  {
+    key: "reports",
+    label: "Report",
+    match: ["report", "reports"],
+  },
+  {
+    key: "content",
+    label: "Content",
+    match: [
+      "blog",
+      "cms",
+      "content",
+      "faq",
+      "reels",
+      "testimonial",
+      "landing",
+      "header",
+      "footer",
+      "notification",
     ],
   },
 ];
@@ -334,15 +330,50 @@ const getMenuSignature = (items: any[]): string => {
 // =====================================================
 
 const resolveGroupKey = (item: any): string => {
+  // Respect an API-provided group, while normalizing common display labels
+  // to the internal keys used by NAV_GROUPS.
   if (item?.group && typeof item.group === "string") {
-    return item.group.toLowerCase();
+    const explicitGroup = item.group
+      .trim()
+      .toLowerCase()
+      .replace(/[\s-]+/g, "_");
+
+    const groupAliases: Record<string, string> = {
+      "order_finance": "finance",
+      finance: "finance",
+      administration: "admin",
+      admin: "admin",
+      operations: "operations",
+      inventory: "inventory",
+      sales: "sales",
+      report: "reports",
+      reports: "reports",
+      overview: "overview",
+      content: "content",
+    };
+
+    return groupAliases[explicitGroup] ?? explicitGroup;
   }
 
   const haystack =
     `${item?.path ?? ""} ${item?.label ?? ""}`.toLowerCase();
 
-  const found = NAV_GROUPS.find((group) =>
-    group.match.some((match) => haystack.includes(match)),
+  // Finance terms must be checked before "order" so an item such as
+  // "Order Finance" is not incorrectly placed inside Operations.
+  const financeGroup = NAV_GROUPS.find(
+    (group) => group.key === "finance",
+  );
+
+  if (
+    financeGroup?.match.some((match) => haystack.includes(match))
+  ) {
+    return financeGroup.key;
+  }
+
+  const found = NAV_GROUPS.find(
+    (group) =>
+      group.key !== "finance" &&
+      group.match.some((match) => haystack.includes(match)),
   );
 
   return found ? found.key : FALLBACK_GROUP.key;

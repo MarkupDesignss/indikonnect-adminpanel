@@ -32,6 +32,9 @@ import GlobalModal from "@/components/common/GlobalModal";
 import CreateDistributorModal from "./CreateDistributorModal";
 import userManagementApi, {
   RegisteredUser,
+  PaginationMeta,
+  RegisteredUsersStats,
+  RegisteredUsersParams,
 } from "../../api/endpoints/user";
 
 import { usePermissions } from "../../pages/permissions/usePermissions";
@@ -40,6 +43,11 @@ import PermissionLoadingState from "@/components/common/PermissionLoadingState";
 
 const DEFAULT_LOGO_URL =
   "https://www.markupdesigns.net/indikonnect/storage/logos/MmVFOudCiVU3Y8C0sf2gEEXna5jSKroCDj8xYMo0.png";
+
+// Backend pagination config
+const ITEMS_PER_PAGE = 20;
+const EXPORT_PER_PAGE = 500;
+const SEARCH_DEBOUNCE_MS = 500;
 
 type UserFilter =
   | "all"
@@ -77,20 +85,22 @@ const itemVariants = {
 // TYPES
 // =====================================================
 
+type PageItem = number | "ellipsis";
+
 interface KycProfileLike {
   id?: number | null;
   gst_in?: string | null;
   company_name?: string | null;
   user_id?: number | null;
 
-  aadhaar_verified?: boolean | null;
+  aadhaar_verified?: boolean | number | null;
   aadhaar_verified_at?: string | null;
   aadhaar_consent?: boolean | null;
 
-  pan_verified?: boolean | null;
+  pan_verified?: boolean | number | null;
   pan_verified_at?: string | null;
 
-  bank_verified?: boolean | null;
+  bank_verified?: boolean | number | null;
   bank_holder_name?: string | null;
   bank_name?: string | null;
   bank_ifsc?: string | null;
@@ -140,12 +150,15 @@ interface BeneficiaryLike {
 interface UserWithBuyback extends RegisteredUser {
   buyback_untill?: string | null;
 
-  // Complete KYC details from API
   complete_pan_card?: string | null;
   complete_aadhar_card?: string | null;
+  complete_bank_account?: string | null;
 
-  // Beneficiaries from API
   beneficiaries?: BeneficiaryLike[] | null;
+
+  business_profile?: KycProfileLike | null;
+  distributor_profile?: KycProfileLike | null;
+  gst_in?: string | null;
 }
 
 // =====================================================
@@ -228,23 +241,49 @@ const getRegisteredDate = (user: RegisteredUser) => {
 // =====================================================
 
 const getKycProfile = (
-  user: RegisteredUser,
+  user: RegisteredUser | null | undefined,
 ): KycProfileLike | null => {
-  const userWithProfiles = user as RegisteredUser & {
-    distributor_profile?: KycProfileLike | null;
-  };
+  if (!user) return null;
 
-  const businessProfile = (
-    user as RegisteredUser & {
-      business_profile?: KycProfileLike | null;
-    }
-  ).business_profile;
+  const userWithProfiles = user as UserWithBuyback;
 
-  const distributorProfile =
-    userWithProfiles.distributor_profile;
+  const businessProfile = userWithProfiles.business_profile;
+  const distributorProfile = userWithProfiles.distributor_profile;
 
   return businessProfile || distributorProfile || null;
 };
+
+// =====================================================
+// GSTIN HELPER
+// =====================================================
+
+const getUserGstin = (
+  user: RegisteredUser | null | undefined,
+): string => {
+  if (!user) return "N/A";
+
+  const userWithProfiles = user as UserWithBuyback;
+
+  const gstinValues = [
+    userWithProfiles.business_profile?.gst_in,
+    userWithProfiles.distributor_profile?.gst_in,
+    getKycProfile(user)?.gst_in,
+    userWithProfiles.gst_in,
+  ];
+
+  const gstin = gstinValues.find(
+    (value) =>
+      typeof value === "string" && value.trim().length > 0,
+  );
+
+  return typeof gstin === "string" && gstin.trim()
+    ? gstin.trim().toUpperCase()
+    : "N/A";
+};
+
+// =====================================================
+// KYC STATUS UPDATED AT
+// =====================================================
 
 const getKycStatusUpdatedAt = (
   user: RegisteredUser,
@@ -255,12 +294,16 @@ const getKycStatusUpdatedAt = (
     return profile.kyc_status_updated_at;
   }
 
-  const userWithTopLevel = user as RegisteredUser & {
+  const userWithTopLevel = user as UserWithBuyback & {
     kyc_status_updated_at?: string | null;
   };
 
   return userWithTopLevel.kyc_status_updated_at ?? null;
 };
+
+// =====================================================
+// EFFECTIVE KYC STATUS
+// =====================================================
 
 const getEffectiveKycStatus = (
   user: RegisteredUser,
@@ -287,7 +330,13 @@ const isWithdrawAllowed = (
 ): boolean => {
   if (!user) return true;
 
-  const payout = user.ignite_payout;
+  const userWithPayout = user as RegisteredUser & {
+    ignite_payout?: {
+      allow_withdraw?: boolean;
+    };
+  };
+
+  const payout = userWithPayout.ignite_payout;
 
   if (payout && typeof payout.allow_withdraw === "boolean") {
     return payout.allow_withdraw;
@@ -379,6 +428,32 @@ const getKycDisplayLabel = (status: string) => {
 };
 
 // =====================================================
+// BACKEND FILTER PARAMS
+// =====================================================
+
+const getFilterParams = (
+  filter: UserFilter,
+): Pick<RegisteredUsersParams, "account_type" | "is_active"> => {
+  switch (filter) {
+    case "customer":
+      return { account_type: "customer" };
+
+    case "distributor":
+      return { account_type: "distributor" };
+
+    case "active":
+      return { is_active: 1 };
+
+    case "inactive":
+      return { is_active: 0 };
+
+    case "all":
+    default:
+      return {};
+  }
+};
+
+// =====================================================
 // CSV HELPERS
 // =====================================================
 
@@ -411,6 +486,10 @@ const getDateStamp = () => {
   return `${year}-${month}-${day}`;
 };
 
+// =====================================================
+// CSV EXPORT DATA
+// =====================================================
+
 const getExportRows = (
   users: RegisteredUser[],
 ) => {
@@ -428,6 +507,10 @@ const getExportRows = (
       Country: user.country ?? "",
       "Date of Birth": formatDateOnly(user.date_of_birth),
       "Account Type": getAccountLabel(user.account_type || ""),
+
+      // GSTIN
+      "GSTIN": getUserGstin(user),
+
       "User Status": user.is_active ? "Active" : "Inactive",
       "KYC Status": getKycDisplayLabel(kycStatus),
       "Distributor Status": user.distributor_status || "",
@@ -471,6 +554,10 @@ const getExportRows = (
     };
   });
 };
+
+// =====================================================
+// DOWNLOAD CSV
+// =====================================================
 
 const downloadUsersCsv = (
   users: RegisteredUser[],
@@ -598,9 +685,8 @@ const UserStatusDropdown: React.FC<UserStatusDropdownProps> = ({
         )}`}
       >
         <span
-          className={`h-1.5 w-1.5 rounded-full ${
-            isActive ? "bg-[#2D6FE8]" : "bg-[#9CA3AF]"
-          }`}
+          className={`h-1.5 w-1.5 rounded-full ${isActive ? "bg-[#2D6FE8]" : "bg-[#9CA3AF]"
+            }`}
         />
         {getCurrentLabel()}
       </span>
@@ -613,11 +699,10 @@ const UserStatusDropdown: React.FC<UserStatusDropdownProps> = ({
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         disabled={isLoading}
-        className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-bold transition ${
-          isLoading
+        className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-bold transition ${isLoading
             ? "cursor-not-allowed opacity-50"
             : "hover:border-[#2D6FE8]/40"
-        } ${getActiveStatusClass(isActive)}`}
+          } ${getActiveStatusClass(isActive)}`}
       >
         <span
           className={
@@ -629,9 +714,8 @@ const UserStatusDropdown: React.FC<UserStatusDropdownProps> = ({
 
         <FiChevronDown
           size={14}
-          className={`transition-transform ${
-            isOpen ? "rotate-180" : ""
-          }`}
+          className={`transition-transform ${isOpen ? "rotate-180" : ""
+            }`}
         />
       </button>
 
@@ -642,11 +726,10 @@ const UserStatusDropdown: React.FC<UserStatusDropdownProps> = ({
               key={String(option.value)}
               type="button"
               onClick={() => handleSelect(option.value)}
-              className={`w-full px-4 py-2 text-left text-xs font-bold transition hover:bg-[#F4F8FD] ${
-                option.value === isActive
+              className={`w-full px-4 py-2 text-left text-xs font-bold transition hover:bg-[#F4F8FD] ${option.value === isActive
                   ? "cursor-default bg-[#EAF3FF]"
                   : ""
-              } ${option.color}`}
+                } ${option.color}`}
             >
               {option.label}
             </button>
@@ -683,155 +766,152 @@ const DistributorStatusDropdown: React.FC<
   isLoading,
   disabled = false,
 }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+    const [isOpen, setIsOpen] = useState(false);
+    const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const effectiveStatus = (
-    kycStatus ||
-    currentStatus ||
-    "pending"
-  ).toLowerCase();
+    const effectiveStatus = (
+      kycStatus ||
+      currentStatus ||
+      "pending"
+    ).toLowerCase();
 
-  const isKycPending = effectiveStatus === "pending";
+    const isKycPending = effectiveStatus === "pending";
 
-  const isKycVerified =
-    effectiveStatus === "active" ||
-    effectiveStatus === "verified" ||
-    effectiveStatus === "approved";
+    const isKycVerified =
+      effectiveStatus === "active" ||
+      effectiveStatus === "verified" ||
+      effectiveStatus === "approved";
 
-  const isKycRejected = effectiveStatus === "rejected";
+    const isKycRejected = effectiveStatus === "rejected";
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
-        setIsOpen(false);
+    useEffect(() => {
+      const handleClickOutside = (event: MouseEvent) => {
+        if (
+          dropdownRef.current &&
+          !dropdownRef.current.contains(event.target as Node)
+        ) {
+          setIsOpen(false);
+        }
+      };
+
+      document.addEventListener("mousedown", handleClickOutside);
+
+      return () =>
+        document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    if (!isKycPending || disabled) {
+      let label = "N/A";
+
+      let statusClass =
+        "border-[#D6E2F0] bg-[#F3F4F6] text-[#6B7280]";
+
+      if (isKycVerified) {
+        label = "Verified";
+        statusClass =
+          "border-[#2D6FE8]/25 bg-[#EAF3FF] text-[#2D6FE8]";
+      } else if (isKycRejected) {
+        label = "Rejected";
+        statusClass =
+          "border-[#C23B32]/25 bg-[#EEF5FF] text-[#C23B32]";
+      } else {
+        label = getKycDisplayLabel(effectiveStatus);
       }
+
+      return (
+        <span
+          className={`inline-flex rounded-full border px-3 py-1.5 text-xs font-bold capitalize ${statusClass}`}
+        >
+          {label}
+        </span>
+      );
+    }
+
+    const statusOptions = [
+      {
+        value: "active",
+        label: "Verify & Activate",
+        color: "text-[#2D6FE8]",
+      },
+      {
+        value: "rejected",
+        label: "Reject",
+        color: "text-[#C23B32]",
+      },
+    ];
+
+    const handleSelect = (value: string) => {
+      if (value !== currentStatus) {
+        onStatusChange(userId, value);
+      }
+
+      setIsOpen(false);
     };
 
-    document.addEventListener("mousedown", handleClickOutside);
+    const getCurrentLabel = () => {
+      const option = statusOptions.find(
+        (opt) => opt.value === currentStatus,
+      );
 
-    return () =>
-      document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+      return option ? option.label : "Pending";
+    };
 
-  if (!isKycPending || disabled) {
-    let label = "N/A";
+    const getCurrentColor = () => {
+      const option = statusOptions.find(
+        (opt) => opt.value === currentStatus,
+      );
 
-    let statusClass =
-      "border-[#D6E2F0] bg-[#F3F4F6] text-[#6B7280]";
-
-    if (isKycVerified) {
-      label = "Verified";
-      statusClass =
-        "border-[#2D6FE8]/25 bg-[#EAF3FF] text-[#2D6FE8]";
-    } else if (isKycRejected) {
-      label = "Rejected";
-      statusClass =
-        "border-[#C23B32]/25 bg-[#EEF5FF] text-[#C23B32]";
-    } else {
-      label = getKycDisplayLabel(effectiveStatus);
-    }
+      return option ? option.color : "text-[#A16207]";
+    };
 
     return (
-      <span
-        className={`inline-flex rounded-full border px-3 py-1.5 text-xs font-bold capitalize ${statusClass}`}
-      >
-        {label}
-      </span>
-    );
-  }
+      <div className="relative" ref={dropdownRef}>
+        <button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          disabled={isLoading}
+          className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-bold transition ${isLoading
+              ? "cursor-not-allowed opacity-50"
+              : "hover:border-[#2D6FE8]/40"
+            } ${getDistributorStatusClass("pending")}`}
+        >
+          <span className={getCurrentColor()}>
+            {getCurrentLabel()}
+          </span>
 
-  const statusOptions = [
-    {
-      value: "active",
-      label: "Verify & Activate",
-      color: "text-[#2D6FE8]",
-    },
-    {
-      value: "rejected",
-      label: "Reject",
-      color: "text-[#C23B32]",
-    },
-  ];
+          <FiChevronDown
+            size={14}
+            className={`transition-transform ${isOpen ? "rotate-180" : ""
+              }`}
+          />
+        </button>
 
-  const handleSelect = (value: string) => {
-    if (value !== currentStatus) {
-      onStatusChange(userId, value);
-    }
+        {isOpen && (
+          <div className="absolute right-0 z-50 mt-1 w-44 rounded-xl border border-[#2D6FE8]/15 bg-white py-1 shadow-lg">
+            <div className="border-b border-[#2D6FE8]/10 px-3 py-1.5">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[#111827]">
+                KYC Pending
+              </span>
+            </div>
 
-    setIsOpen(false);
-  };
-
-  const getCurrentLabel = () => {
-    const option = statusOptions.find(
-      (opt) => opt.value === currentStatus,
-    );
-
-    return option ? option.label : "Pending";
-  };
-
-  const getCurrentColor = () => {
-    const option = statusOptions.find(
-      (opt) => opt.value === currentStatus,
-    );
-
-    return option ? option.color : "text-[#A16207]";
-  };
-
-  return (
-    <div className="relative" ref={dropdownRef}>
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        disabled={isLoading}
-        className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-bold transition ${
-          isLoading
-            ? "cursor-not-allowed opacity-50"
-            : "hover:border-[#2D6FE8]/40"
-        } ${getDistributorStatusClass("pending")}`}
-      >
-        <span className={getCurrentColor()}>
-          {getCurrentLabel()}
-        </span>
-
-        <FiChevronDown
-          size={14}
-          className={`transition-transform ${
-            isOpen ? "rotate-180" : ""
-          }`}
-        />
-      </button>
-
-      {isOpen && (
-        <div className="absolute right-0 z-50 mt-1 w-44 rounded-xl border border-[#2D6FE8]/15 bg-white py-1 shadow-lg">
-          <div className="border-b border-[#2D6FE8]/10 px-3 py-1.5">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#111827]">
-              KYC Pending
-            </span>
+            {statusOptions.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => handleSelect(option.value)}
+                className={`w-full px-4 py-2 text-left text-xs font-bold transition hover:bg-[#F4F8FD] ${option.value === currentStatus
+                    ? "cursor-default bg-[#EAF3FF]"
+                    : ""
+                  } ${option.color}`}
+              >
+                {option.label}
+              </button>
+            ))}
           </div>
-
-          {statusOptions.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              onClick={() => handleSelect(option.value)}
-              className={`w-full px-4 py-2 text-left text-xs font-bold transition hover:bg-[#F4F8FD] ${
-                option.value === currentStatus
-                  ? "cursor-default bg-[#EAF3FF]"
-                  : ""
-              } ${option.color}`}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
+        )}
+      </div>
+    );
+  };
 
 // =====================================================
 // WITHDRAW CONTROL
@@ -891,11 +971,10 @@ const WithdrawHoldControl: React.FC<WithdrawHoldControlProps> = ({
         <div className="mb-4 flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
             <div
-              className={`flex h-11 w-11 items-center justify-center rounded-xl text-2xl font-bold ${
-                isOnHold
+              className={`flex h-11 w-11 items-center justify-center rounded-xl text-2xl font-bold ${isOnHold
                   ? "bg-[#FFF7D6] text-[#A16207]"
                   : "bg-[#EAF3FF] text-[#2D6FE8]"
-              }`}
+                }`}
             >
               ₹
             </div>
@@ -912,16 +991,14 @@ const WithdrawHoldControl: React.FC<WithdrawHoldControlProps> = ({
           </div>
 
           <span
-            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide ${
-              isOnHold
+            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide ${isOnHold
                 ? "border-[#F2C94C]/45 bg-[#FFF7D6] text-[#A16207]"
                 : "border-[#2D6FE8]/25 bg-[#EAF3FF] text-[#2D6FE8]"
-            }`}
+              }`}
           >
             <span
-              className={`h-1.5 w-1.5 rounded-full ${
-                isOnHold ? "bg-[#A16207]" : "bg-[#2D6FE8]"
-              }`}
+              className={`h-1.5 w-1.5 rounded-full ${isOnHold ? "bg-[#A16207]" : "bg-[#2D6FE8]"
+                }`}
             />
 
             {isOnHold ? "On Hold" : "Released"}
@@ -949,20 +1026,17 @@ const WithdrawHoldControl: React.FC<WithdrawHoldControlProps> = ({
             aria-checked={!isOnHold}
             disabled={disabled || busy}
             onClick={openConfirm}
-            className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 ${
-              !isOnHold
+            className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 ${!isOnHold
                 ? "bg-[#2D6FE8]"
                 : "bg-[#D6E2F0]"
-            } ${
-              disabled || busy
+              } ${disabled || busy
                 ? "cursor-not-allowed opacity-60"
                 : "cursor-pointer"
-            }`}
+              }`}
           >
             <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 ${
-                !isOnHold ? "translate-x-6" : "translate-x-1"
-              }`}
+              className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 ${!isOnHold ? "translate-x-6" : "translate-x-1"
+                }`}
             />
           </button>
         </div>
@@ -987,11 +1061,10 @@ const WithdrawHoldControl: React.FC<WithdrawHoldControlProps> = ({
             <div className="flex items-start justify-between gap-4 border-b border-[#2D6FE8]/10 px-5 py-4">
               <div className="flex items-start gap-3">
                 <div
-                  className={`flex h-11 w-11 items-center justify-center rounded-xl text-xl font-bold ${
-                    action === "hold"
+                  className={`flex h-11 w-11 items-center justify-center rounded-xl text-xl font-bold ${action === "hold"
                       ? "bg-[#FFF7D6] text-[#A16207]"
                       : "bg-[#EAF3FF] text-[#2D6FE8]"
-                  }`}
+                    }`}
                 >
                   ₹
                 </div>
@@ -1039,11 +1112,10 @@ const WithdrawHoldControl: React.FC<WithdrawHoldControlProps> = ({
                 type="button"
                 onClick={handleConfirm}
                 disabled={submitting}
-                className={`flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-60 ${
-                  action === "hold"
+                className={`flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-60 ${action === "hold"
                     ? "bg-gradient-to-r from-[#F2C94C] to-[#D4A017] shadow-[#D4A017]/20"
                     : "bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] shadow-[#2D6FE8]/20"
-                }`}
+                  }`}
               >
                 {submitting && (
                   <FiRefreshCw size={14} className="animate-spin" />
@@ -1067,7 +1139,7 @@ const WithdrawHoldControl: React.FC<WithdrawHoldControlProps> = ({
 
 interface StatCardProps {
   title: string;
-  value: number;
+  value: number | null;
   subtitle: string;
   icon: React.ReactNode;
   accent: string;
@@ -1106,7 +1178,7 @@ const StatCard: React.FC<StatCardProps> = ({
           </p>
 
           <p className="mt-2 text-2xl font-semibold text-[#111827]">
-            {value.toLocaleString("en-IN")}
+            {value === null ? "—" : value.toLocaleString("en-IN")}
           </p>
 
           <p className="mt-1 text-xs text-[#111827]">{subtitle}</p>
@@ -1136,7 +1208,7 @@ const InfoRow: React.FC<InfoRowProps> = ({ label, value }) => {
     <div className="flex items-start justify-between gap-4 border-b border-[#2D6FE8]/10 py-3 last:border-b-0">
       <span className="text-xs text-[#111827]">{label}</span>
 
-      <span className="max-w-[62%] text-right text-sm font-semibold text-[#111827]">
+      <span className="max-w-[62%] break-words text-right text-sm font-semibold text-[#111827]">
         {value}
       </span>
     </div>
@@ -1225,11 +1297,10 @@ const BuybackCountdown: React.FC<BuybackCountdownProps> = ({
         </div>
 
         <span
-          className={`rounded-full border px-2.5 py-1 text-[9px] font-bold ${
-            isExpired
+          className={`rounded-full border px-2.5 py-1 text-[9px] font-bold ${isExpired
               ? "border-[#C23B32]/20 bg-[#FCEEEE] text-[#C23B32]"
               : "border-[#2D6FE8]/20 bg-[#EAF3FF] text-[#2D6FE8]"
-          }`}
+            }`}
         >
           {isExpired ? "EXPIRED" : "ACTIVE"}
         </span>
@@ -1336,10 +1407,6 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
     ? getKycStatusUpdatedAt(user)
     : null;
 
-  // ===================================================
-  // BUYBACK + COMPLETE KYC DETAILS FROM API
-  // ===================================================
-
   const userWithExtraFields = user as UserWithBuyback | null;
 
   const buybackUntil = userWithExtraFields?.buyback_untill;
@@ -1355,10 +1422,10 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
     kycProfile?.complete_bank_account ||
     null;
 
-  // ===================================================
-  // BENEFICIARIES FROM API
-  // ===================================================
+  // GSTIN
+  const userGstin = getUserGstin(user);
 
+  // BENEFICIARIES
   const beneficiaries: BeneficiaryLike[] = Array.isArray(
     userWithExtraFields?.beneficiaries,
   )
@@ -1468,11 +1535,10 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                         )}`}
                       >
                         <span
-                          className={`h-1.5 w-1.5 rounded-full ${
-                            user.is_active
+                          className={`h-1.5 w-1.5 rounded-full ${user.is_active
                               ? "bg-[#2D6FE8]"
                               : "bg-[#111827]"
-                          }`}
+                            }`}
                         />
 
                         {user.is_active ? "Active" : "Inactive"}
@@ -1488,8 +1554,8 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
 
                   <div className="mt-2">
                     {user.account_type === "distributor" &&
-                    onDistributorStatusChange &&
-                    canChangeDistributorStatus ? (
+                      onDistributorStatusChange &&
+                      canChangeDistributorStatus ? (
                       <DistributorStatusDropdown
                         userId={user.id}
                         currentStatus={
@@ -1545,7 +1611,7 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                   </div>
 
                   <InfoRow label="Full Name" value={getUserName(user)} />
-                  <InfoRow label="Email" value={user.email} />
+                  <InfoRow label="Email" value={user.email || "N/A"} />
                   <InfoRow label="Phone" value={user.phone || "N/A"} />
                   <InfoRow label="Country" value={user.country || "N/A"} />
 
@@ -1569,6 +1635,21 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                   <InfoRow
                     label="Registered"
                     value={user.is_registered ? "Yes" : "No"}
+                  />
+
+                  <InfoRow
+                    label="GSTIN"
+                    value={
+                      <span
+                        className={
+                          userGstin === "N/A"
+                            ? "text-[#6B7280]"
+                            : "text-[#2D6FE8]"
+                        }
+                      >
+                        {userGstin}
+                      </span>
+                    }
                   />
 
                   <InfoRow
@@ -1607,17 +1688,16 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
 
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                   <div className="rounded-xl border border-[#DCE6F2] bg-white p-4">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-2">
                       <span className="text-xs text-[#111827]">
                         Phone
                       </span>
 
                       <span
-                        className={`text-[10px] font-bold ${
-                          user.phone_verified
+                        className={`shrink-0 whitespace-nowrap text-[10px] font-bold ${user.phone_verified
                             ? "text-[#111827]"
                             : "text-[#C23B32]"
-                        }`}
+                          }`}
                       >
                         {user.phone_verified
                           ? "Verified"
@@ -1633,17 +1713,16 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                   </div>
 
                   <div className="rounded-xl border border-[#DCE6F2] bg-white p-4">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-2">
                       <span className="text-xs text-[#111827]">
                         Email
                       </span>
 
                       <span
-                        className={`text-[10px] font-bold ${
-                          user.email_verified_at
+                        className={`shrink-0 whitespace-nowrap text-[10px] font-bold ${user.email_verified_at
                             ? "text-[#111827]"
                             : "text-[#C23B32]"
-                        }`}
+                          }`}
                       >
                         {user.email_verified_at
                           ? "Verified"
@@ -1659,17 +1738,16 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                   </div>
 
                   <div className="rounded-xl border border-[#DCE6F2] bg-white p-4">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-2">
                       <span className="text-xs text-[#111827]">
                         Terms
                       </span>
 
                       <span
-                        className={`text-[10px] font-bold ${
-                          user.terms_condition
+                        className={`shrink-0 whitespace-nowrap text-[10px] font-bold ${user.terms_condition
                             ? "text-[#111827]"
                             : "text-[#C23B32]"
-                        }`}
+                          }`}
                       >
                         {user.terms_condition
                           ? "Accepted"
@@ -1699,29 +1777,29 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                    <div className="rounded-xl border border-[#DCE6F2] bg-white p-4">
-                      <p className="text-[10px] font-bold uppercase tracking-wide text-[#111827]">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    <div className="min-w-0 rounded-xl border border-[#DCE6F2] bg-white p-4">
+                      <p className="whitespace-nowrap text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
                         Distributor ID
                       </p>
 
-                      <p className="mt-1 text-sm font-bold text-[#111827]">
+                      <p className="mt-1.5 break-words text-sm font-bold tabular-nums text-[#111827]">
                         {user.distributor_id || "Not Assigned"}
                       </p>
                     </div>
 
-                    <div className="rounded-xl border border-[#DCE6F2] bg-white p-4">
-                      <p className="text-[10px] font-bold uppercase tracking-wide text-[#111827]">
+                    <div className="min-w-0 rounded-xl border border-[#DCE6F2] bg-white p-4">
+                      <p className="whitespace-nowrap text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
                         Sponsor ID
                       </p>
 
-                      <p className="mt-1 text-sm font-bold text-[#111827]">
+                      <p className="mt-1.5 break-words text-sm font-bold tabular-nums text-[#111827]">
                         {user.sponsor_id || "Not Assigned"}
                       </p>
                     </div>
 
-                    <div className="rounded-xl border border-[#DCE6F2] bg-white p-4">
-                      <p className="text-[10px] font-bold uppercase tracking-wide text-[#111827]">
+                    <div className="min-w-0 rounded-xl border border-[#DCE6F2] bg-white p-4">
+                      <p className="whitespace-nowrap text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
                         Registration
                       </p>
 
@@ -1730,14 +1808,14 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                       </p>
                     </div>
 
-                    <div className="rounded-xl border border-[#DCE6F2] bg-white p-4">
-                      <p className="text-[10px] font-bold uppercase tracking-wide text-[#111827]">
+                    <div className="min-w-0 rounded-xl border border-[#DCE6F2] bg-white p-4">
+                      <p className="whitespace-nowrap text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
                         KYC Status
                       </p>
 
-                      <div className="mt-2">
+                      <div className="mt-1.5">
                         {onDistributorStatusChange &&
-                        canChangeDistributorStatus ? (
+                          canChangeDistributorStatus ? (
                           <DistributorStatusDropdown
                             userId={user.id}
                             currentStatus={
@@ -1757,6 +1835,22 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                           </span>
                         )}
                       </div>
+                    </div>
+
+                    {/* GSTIN */}
+                    <div className="min-w-0 rounded-xl border border-[#DCE6F2] bg-white p-4">
+                      <p className="whitespace-nowrap text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
+                        GSTIN
+                      </p>
+
+                      <p
+                        className={`mt-1 break-all text-sm font-bold ${userGstin === "N/A"
+                            ? "text-[#6B7280]"
+                            : "text-[#2D6FE8]"
+                          }`}
+                      >
+                        {userGstin}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -1815,8 +1909,8 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
 
                               <p className="mt-1 text-sm font-bold text-[#111827]">
                                 {beneficiary.age !== null &&
-                                beneficiary.age !== undefined &&
-                                beneficiary.age !== ""
+                                  beneficiary.age !== undefined &&
+                                  beneficiary.age !== ""
                                   ? beneficiary.age
                                   : "N/A"}
                               </p>
@@ -1889,6 +1983,22 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                       </p>
                     </div>
 
+                    {/* GSTIN */}
+                    <div className="rounded-xl border border-[#DCE6F2] bg-white p-4">
+                      <p className="text-[10px] font-bold uppercase tracking-wide text-[#111827]">
+                        GSTIN
+                      </p>
+
+                      <p
+                        className={`mt-1 break-all text-sm font-bold ${userGstin === "N/A"
+                            ? "text-[#6B7280]"
+                            : "text-[#2D6FE8]"
+                          }`}
+                      >
+                        {userGstin}
+                      </p>
+                    </div>
+
                     {/* COMPLETE AADHAAR NUMBER */}
                     <div className="rounded-xl border border-[#DCE6F2] bg-white p-4">
                       <p className="text-[10px] font-bold uppercase tracking-wide text-[#111827]">
@@ -1900,11 +2010,10 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                       </p>
 
                       <p
-                        className={`mt-1 text-[10px] font-bold ${
-                          kycProfile.aadhaar_verified
+                        className={`mt-1 text-[10px] font-bold ${kycProfile.aadhaar_verified
                             ? "text-[#2D6FE8]"
                             : "text-[#C23B32]"
-                        }`}
+                          }`}
                       >
                         {kycProfile.aadhaar_verified
                           ? "Verified"
@@ -1923,11 +2032,10 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                       </p>
 
                       <p
-                        className={`mt-1 text-[10px] font-bold ${
-                          kycProfile.pan_verified
+                        className={`mt-1 text-[10px] font-bold ${kycProfile.pan_verified
                             ? "text-[#2D6FE8]"
                             : "text-[#C23B32]"
-                        }`}
+                          }`}
                       >
                         {kycProfile.pan_verified
                           ? "Verified"
@@ -1949,11 +2057,10 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                       </p>
 
                       <p
-                        className={`mt-1 text-[10px] font-bold ${
-                          kycProfile.bank_verified
+                        className={`mt-1 text-[10px] font-bold ${kycProfile.bank_verified
                             ? "text-[#2D6FE8]"
                             : "text-[#C23B32]"
-                        }`}
+                          }`}
                       >
                         {kycProfile.bank_verified
                           ? "Verified"
@@ -2013,19 +2120,22 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                   ].map((item) => (
                     <div
                       key={item.label}
-                      className="flex items-center justify-between rounded-xl border border-[#DCE6F2] bg-white p-3"
+                      className="flex min-w-0 flex-col gap-2 rounded-xl border border-[#DCE6F2] bg-white p-3.5"
                     >
-                      <span className="text-xs text-[#111827]">
+                      <span className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
                         {item.label}
                       </span>
 
                       <span
-                        className={`text-[10px] font-bold ${
-                          item.value
-                            ? "text-[#111827]"
-                            : "text-[#C23B32]"
-                        }`}
+                        className={`inline-flex w-fit items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-1 text-[11px] font-bold ${item.value
+                            ? "border-[#2D6FE8]/25 bg-[#EAF3FF] text-[#2D6FE8]"
+                            : "border-[#C23B32]/20 bg-[#FCEEEE] text-[#C23B32]"
+                          }`}
                       >
+                        <span
+                          className={`h-1.5 w-1.5 rounded-full ${item.value ? "bg-[#2D6FE8]" : "bg-[#C23B32]"
+                            }`}
+                        />
                         {item.value ? "Accepted" : "Not Accepted"}
                       </span>
                     </div>
@@ -2138,6 +2248,18 @@ const UserManagement: React.FC = () => {
 
   const personFromHeader = userFromHeader || adminFromHeader;
 
+  // Initial search coming from navigation (KYC / header)
+  const initialSearch = kycUserName
+    ? kycUserName.trim()
+    : personFromHeader
+      ? String(personFromHeader.id)
+      : "";
+
+  // Deep link (open the user's detail modal after first fetch)
+  const deepLinkPending = useRef<boolean>(
+    Boolean(kycUserName || personFromHeader),
+  );
+
   // ===================================================
   // STATE
   // ===================================================
@@ -2146,8 +2268,19 @@ const UserManagement: React.FC = () => {
 
   const [initialUsersLoading, setInitialUsersLoading] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
 
-  const [search, setSearch] = useState("");
+  // Backend pagination state
+  const [pagination, setPagination] = useState<PaginationMeta | null>(
+    null,
+  );
+  const [serverStats, setServerStats] =
+    useState<RegisteredUsersStats | null>(null);
+  const [overallTotal, setOverallTotal] = useState<number | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const [search, setSearch] = useState(initialSearch);
+  const [debouncedSearch, setDebouncedSearch] = useState(initialSearch);
   const [activeFilter, setActiveFilter] = useState<UserFilter>("all");
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -2165,8 +2298,6 @@ const UserManagement: React.FC = () => {
     number | null
   >(null);
 
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
-
   const [highlightedUserId, setHighlightedUserId] = useState<
     number | null
   >(null);
@@ -2176,8 +2307,6 @@ const UserManagement: React.FC = () => {
   const [withdrawLoadingId, setWithdrawLoadingId] = useState<
     number | null
   >(null);
-
-  const ITEMS_PER_PAGE = 10;
 
   // ===================================================
   // LOGO FETCH
@@ -2225,121 +2354,155 @@ const UserManagement: React.FC = () => {
   }, []);
 
   // ===================================================
-  // FETCH USERS
+  // SEARCH DEBOUNCE
   // ===================================================
 
-  const fetchUsers = async (isInitialLoad = false) => {
-    try {
-      setLoading(true);
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const next = search.trim();
 
-      const response = await userManagementApi.getRegisteredUsers();
-
-      if (response.data.success) {
-        const userData = response.data.data || [];
-
-        setUsers(userData);
-
-        // PRIORITY 1: KYC USER
-        if (kycUserName && isInitialLoad && userData.length > 0) {
-          const searchTerm = kycUserName.trim().toLowerCase();
-
-          const targetUser = userData.find(
-            (user: RegisteredUser) => {
-              const fullName = (user.full_name || "").toLowerCase();
-              const email = (user.email || "").toLowerCase();
-
-              return (
-                fullName.includes(searchTerm) ||
-                email.includes(searchTerm) ||
-                fullName === searchTerm
-              );
-            },
-          );
-
-          if (targetUser) {
-            const term =
-              targetUser.full_name ||
-              targetUser.email ||
-              String(targetUser.id);
-
-            setSearch(term);
-            setHighlightedUserId(targetUser.id);
-
-            await handleView(targetUser.id);
-
-            toast.success(
-              `Found KYC review for ${getUserName(targetUser)}`,
-            );
-          } else {
-            setSearch(kycUserName);
-            toast.info(`Searching for user: ${kycUserName}`);
-          }
-
-          setIsInitialLoad(false);
-          return;
+      setDebouncedSearch((prev) => {
+        if (prev !== next) {
+          setCurrentPage(1);
         }
 
-        // PRIORITY 2: HEADER USER
-        if (personFromHeader && isInitialLoad && userData.length > 0) {
-          const targetUser = userData.find(
-            (user: RegisteredUser) =>
-              String(user.id) === String(personFromHeader.id),
-          );
+        return next;
+      });
+    }, SEARCH_DEBOUNCE_MS);
 
-          if (targetUser) {
-            const term =
-              targetUser.full_name ||
-              targetUser.email ||
-              String(targetUser.id);
-
-            setSearch(term);
-            setHighlightedUserId(targetUser.id);
-
-            await handleView(targetUser.id);
-          } else {
-            setSearch(String(personFromHeader.id));
-
-            toast.info(
-              `Looking for user with ID: ${personFromHeader.id}`,
-            );
-          }
-
-          setIsInitialLoad(false);
-        }
-      } else {
-        toast.error(response.data.message || "Unable to fetch users.");
-      }
-    } catch (error: any) {
-      console.error("Fetch users error:", error);
-
-      toast.error(
-        error?.response?.data?.message || "Unable to fetch users.",
-      );
-    } finally {
-      setLoading(false);
-
-      if (isInitialLoad) {
-        setInitialUsersLoading(false);
-      }
-    }
-  };
+    return () => window.clearTimeout(timer);
+  }, [search]);
 
   // ===================================================
-  // INITIAL FETCH
+  // FETCH USERS (BACKEND PAGINATION)
   // ===================================================
 
   useEffect(() => {
     if (permissionsLoading) return;
 
-    if (canViewUsers && isInitialLoad) {
-      void fetchUsers(true);
-    } else if (!canViewUsers) {
+    if (!canViewUsers) {
       setLoading(false);
       setInitialUsersLoading(false);
+      return;
     }
 
+    let cancelled = false;
+
+    const run = async () => {
+      try {
+        setLoading(true);
+
+        const params: RegisteredUsersParams = {
+          page: currentPage,
+          per_page: ITEMS_PER_PAGE,
+          search: debouncedSearch || undefined,
+          ...getFilterParams(activeFilter),
+        };
+
+        const response = await userManagementApi.getRegisteredUsers(params);
+
+        if (cancelled) return;
+
+        if (response.data.success) {
+          const userData = response.data.data || [];
+
+          setUsers(userData);
+
+          const meta = response.data.pagination;
+
+          if (meta) {
+            setPagination(meta);
+
+            if (activeFilter === "all" && !debouncedSearch) {
+              setOverallTotal(meta.total);
+            }
+          } else {
+            setPagination(null);
+          }
+
+          if (response.data.stats) {
+            setServerStats(response.data.stats);
+          }
+
+          // DEEP LINK (KYC user / header user)
+          if (deepLinkPending.current) {
+            deepLinkPending.current = false;
+
+            if (kycUserName) {
+              const searchTerm = kycUserName.trim().toLowerCase();
+
+              const targetUser = userData.find(
+                (user: RegisteredUser) => {
+                  const fullName = (user.full_name || "").toLowerCase();
+                  const email = (user.email || "").toLowerCase();
+
+                  return (
+                    fullName.includes(searchTerm) ||
+                    email.includes(searchTerm)
+                  );
+                },
+              );
+
+              if (targetUser) {
+                setHighlightedUserId(targetUser.id);
+
+                void handleView(targetUser.id);
+
+                toast.success(
+                  `Found KYC review for ${getUserName(targetUser)}`,
+                );
+              } else {
+                toast(`Searching for user: ${kycUserName}`);
+              }
+            } else if (personFromHeader) {
+              const targetUser = userData.find(
+                (user: RegisteredUser) =>
+                  String(user.id) === String(personFromHeader.id),
+              );
+
+              if (targetUser) {
+                setHighlightedUserId(targetUser.id);
+
+                void handleView(targetUser.id);
+              } else {
+                toast(`Looking for user with ID: ${personFromHeader.id}`);
+              }
+            }
+          }
+        } else {
+          toast.error(response.data.message || "Unable to fetch users.");
+        }
+      } catch (error: any) {
+        if (cancelled) return;
+
+        console.error("Fetch users error:", error);
+
+        toast.error(
+          error?.response?.data?.message || "Unable to fetch users.",
+        );
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+          setInitialUsersLoading(false);
+        }
+      }
+    };
+
+    void run();
+
+    return () => {
+      cancelled = true;
+    };
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [permissionsLoading, canViewUsers]);
+  }, [
+    permissionsLoading,
+    canViewUsers,
+    currentPage,
+    debouncedSearch,
+    activeFilter,
+    refreshKey,
+  ]);
 
   // ===================================================
   // COMBINED INITIAL LOADING
@@ -2351,103 +2514,52 @@ const UserManagement: React.FC = () => {
     initialUsersLoading;
 
   // ===================================================
-  // STATS
+  // STATS (OVERALL COUNTS)
   // ===================================================
 
   const stats = useMemo(() => {
-    const total = users.length;
-    const active = users.filter((user) => user.is_active).length;
-    const inactive = users.filter((user) => !user.is_active).length;
-
-    const distributors = users.filter(
-      (user) => user.account_type === "distributor",
-    ).length;
-
-    const customers = users.filter(
-      (user) => user.account_type === "customer",
-    ).length;
+    const total =
+      serverStats?.total ??
+      overallTotal ??
+      (activeFilter === "all" && !debouncedSearch
+        ? pagination?.total ?? null
+        : null);
 
     return {
       total,
-      active,
-      inactive,
-      distributors,
-      customers,
+      active: serverStats?.active ?? null,
+      inactive: serverStats?.inactive ?? null,
+      distributors: serverStats?.distributors ?? null,
+      customers: serverStats?.customers ?? null,
     };
-  }, [users]);
+  }, [serverStats, overallTotal, pagination, activeFilter, debouncedSearch]);
 
-  // ===================================================
-  // FILTER
-  // ===================================================
-
-  const filteredUsers = useMemo(() => {
-    const query = search.trim().toLowerCase();
-
-    return users.filter((user) => {
-      const searchMatch =
-        !query ||
-        [
-          user.full_name || "",
-          user.email,
-          user.phone || "",
-          user.country || "",
-          user.account_type || "",
-          user.distributor_id || "",
-          user.sponsor_id || "",
-          String(user.id),
-        ]
-          .join(" ")
-          .toLowerCase()
-          .includes(query);
-
-      if (!searchMatch) return false;
-
-      switch (activeFilter) {
-        case "customer":
-          return user.account_type === "customer";
-
-        case "distributor":
-          return user.account_type === "distributor";
-
-        case "active":
-          return user.is_active;
-
-        case "inactive":
-          return !user.is_active;
-
-        default:
-          return true;
-      }
-    });
-  }, [users, search, activeFilter]);
-
-  // ===================================================
-  // CSV EXPORT
-  // ===================================================
-
-  const tabExportUsers = useMemo(() => {
-    switch (activeFilter) {
-      case "customer":
-        return users.filter(
-          (user) => user.account_type === "customer",
-        );
-
-      case "distributor":
-        return users.filter(
-          (user) => user.account_type === "distributor",
-        );
-
-      case "active":
-        return users.filter((user) => user.is_active);
-
-      case "inactive":
-        return users.filter((user) => !user.is_active);
-
-      case "all":
-      default:
-        return users;
+  // Count shown on each filter tab
+  const getTabCount = (key: UserFilter): number | null => {
+    // The currently active tab (without search) is known exactly from pagination
+    if (activeFilter === key && !debouncedSearch && pagination) {
+      return pagination.total;
     }
-  }, [users, activeFilter]);
+
+    switch (key) {
+      case "all":
+        return stats.total;
+      case "customer":
+        return stats.customers;
+      case "distributor":
+        return stats.distributors;
+      case "active":
+        return stats.active;
+      case "inactive":
+        return stats.inactive;
+      default:
+        return null;
+    }
+  };
+
+  // ===================================================
+  // CSV EXPORT (FETCHES ALL PAGES FROM BACKEND)
+  // ===================================================
 
   const getExportTabLabel = () => {
     switch (activeFilter) {
@@ -2489,61 +2601,97 @@ const UserManagement: React.FC = () => {
     }
   };
 
-  const handleExportAll = () => {
-    const exportUsers = tabExportUsers;
+  const handleExportAll = async () => {
+    if (exportLoading) return;
+
     const exportLabel = getExportTabLabel();
 
-    if (!exportUsers.length) {
-      toast.error(
-        `No ${exportLabel} users available for CSV export.`,
+    try {
+      setExportLoading(true);
+
+      const allUsers: RegisteredUser[] = [];
+
+      let page = 1;
+      let lastPage = 1;
+
+      do {
+        const response = await userManagementApi.getRegisteredUsers({
+          page,
+          per_page: EXPORT_PER_PAGE,
+          ...getFilterParams(activeFilter),
+        });
+
+        if (!response.data.success) {
+          throw new Error(
+            response.data.message || "Unable to export users.",
+          );
+        }
+
+        allUsers.push(...(response.data.data || []));
+
+        lastPage = response.data.pagination?.last_page ?? 1;
+        page += 1;
+      } while (page <= lastPage);
+
+      if (!allUsers.length) {
+        toast.error(
+          `No ${exportLabel} users available for CSV export.`,
+        );
+
+        return;
+      }
+
+      downloadUsersCsv(
+        allUsers,
+        `registered-users-${exportLabel}-${getDateStamp()}.csv`,
       );
+    } catch (error: any) {
+      console.error("Export users error:", error);
 
-      return;
+      toast.error(
+        error?.response?.data?.message ||
+        error?.message ||
+        "Unable to export users.",
+      );
+    } finally {
+      setExportLoading(false);
     }
-
-    const dateStamp = getDateStamp();
-
-    downloadUsersCsv(
-      exportUsers,
-      `registered-users-${exportLabel}-${dateStamp}.csv`,
-    );
   };
 
   // ===================================================
-  // PAGINATION
+  // PAGINATION (BACKEND)
   // ===================================================
 
-  const totalPages = Math.max(
-    1,
-    Math.ceil(filteredUsers.length / ITEMS_PER_PAGE),
-  );
+  const totalItems = pagination?.total ?? users.length;
 
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const perPage = pagination?.per_page ?? ITEMS_PER_PAGE;
 
-  const paginatedUsers = filteredUsers.slice(
-    startIndex,
-    startIndex + ITEMS_PER_PAGE,
-  );
+  const totalPages = Math.max(1, pagination?.last_page ?? 1);
 
-  const startEntry =
-    filteredUsers.length === 0 ? 0 : startIndex + 1;
+  const startIndex = (currentPage - 1) * perPage;
 
-  const endEntry = Math.min(
-    startIndex + ITEMS_PER_PAGE,
-    filteredUsers.length,
-  );
+  const paginatedUsers = users;
+
+  const startEntry = totalItems === 0 ? 0 : startIndex + 1;
+
+  const endEntry =
+    totalItems === 0
+      ? 0
+      : Math.min(startIndex + users.length, totalItems);
 
   useEffect(() => {
-    if (currentPage > totalPages) {
+    if (pagination && currentPage > totalPages) {
       setCurrentPage(totalPages);
     }
-  }, [currentPage, totalPages]);
+  }, [currentPage, totalPages, pagination]);
 
   // ===================================================
   // HANDLERS
   // ===================================================
 
   const handleFilter = (filter: UserFilter) => {
+    if (filter === activeFilter) return;
+
     setActiveFilter(filter);
     setCurrentPage(1);
     setHighlightedUserId(null);
@@ -2551,7 +2699,13 @@ const UserManagement: React.FC = () => {
 
   const handleSearch = (value: string) => {
     setSearch(value);
-    setCurrentPage(1);
+    setHighlightedUserId(null);
+  };
+
+  const handlePageChange = (page: number) => {
+    if (page < 1 || page > totalPages || page === currentPage) return;
+
+    setCurrentPage(page);
     setHighlightedUserId(null);
   };
 
@@ -2577,7 +2731,7 @@ const UserManagement: React.FC = () => {
 
       toast.error(
         error?.response?.data?.message ||
-          "Unable to fetch user details.",
+        "Unable to fetch user details.",
       );
     } finally {
       setDetailLoading(false);
@@ -2617,9 +2771,8 @@ const UserManagement: React.FC = () => {
 
         toast.success(
           response.data.message ||
-            `User ${
-              nextStatus ? "activated" : "deactivated"
-            } successfully.`,
+          `User ${nextStatus ? "activated" : "deactivated"
+          } successfully.`,
         );
       } else {
         toast.error(
@@ -2631,7 +2784,7 @@ const UserManagement: React.FC = () => {
 
       toast.error(
         error?.response?.data?.message ||
-          "Unable to update user status.",
+        "Unable to update user status.",
       );
     } finally {
       setStatusLoadingId(null);
@@ -2664,15 +2817,11 @@ const UserManagement: React.FC = () => {
             if (item.id !== userId) return item;
 
             const existingBusinessProfile = (
-              item as RegisteredUser & {
-                business_profile?: KycProfileLike | null;
-              }
+              item as UserWithBuyback
             ).business_profile;
 
             const existingDistributorProfile = (
-              item as RegisteredUser & {
-                distributor_profile?: KycProfileLike | null;
-              }
+              item as UserWithBuyback
             ).distributor_profile;
 
             const updatedProfile = {
@@ -2687,13 +2836,19 @@ const UserManagement: React.FC = () => {
               distributor_status: newStatus,
 
               business_profile: existingBusinessProfile
-                ? updatedProfile
-                : (item as any).business_profile,
+                ? {
+                  ...existingBusinessProfile,
+                  kyc_status: newStatus,
+                }
+                : undefined,
 
               distributor_profile: existingDistributorProfile
-                ? updatedProfile
-                : (item as any).distributor_profile,
-            };
+                ? {
+                  ...existingDistributorProfile,
+                  kyc_status: newStatus,
+                }
+                : updatedProfile,
+            } as RegisteredUser;
           }),
         );
 
@@ -2701,15 +2856,11 @@ const UserManagement: React.FC = () => {
           if (!current || current.id !== userId) return current;
 
           const existingBusinessProfile = (
-            current as RegisteredUser & {
-              business_profile?: KycProfileLike | null;
-            }
+            current as UserWithBuyback
           ).business_profile;
 
           const existingDistributorProfile = (
-            current as RegisteredUser & {
-              distributor_profile?: KycProfileLike | null;
-            }
+            current as UserWithBuyback
           ).distributor_profile;
 
           const updatedProfile = {
@@ -2724,13 +2875,19 @@ const UserManagement: React.FC = () => {
             distributor_status: newStatus,
 
             business_profile: existingBusinessProfile
-              ? updatedProfile
-              : (current as any).business_profile,
+              ? {
+                ...existingBusinessProfile,
+                kyc_status: newStatus,
+              }
+              : undefined,
 
             distributor_profile: existingDistributorProfile
-              ? updatedProfile
-              : (current as any).distributor_profile,
-          };
+              ? {
+                ...existingDistributorProfile,
+                kyc_status: newStatus,
+              }
+              : updatedProfile,
+          } as RegisteredUser;
         });
 
         const displayStatus =
@@ -2738,7 +2895,7 @@ const UserManagement: React.FC = () => {
 
         toast.success(
           response.data.message ||
-            `KYC status updated to ${displayStatus} successfully.`,
+          `KYC status updated to ${displayStatus} successfully.`,
         );
       } else {
         toast.error(
@@ -2750,7 +2907,7 @@ const UserManagement: React.FC = () => {
 
       toast.error(
         error?.response?.data?.message ||
-          "Unable to update KYC status.",
+        "Unable to update KYC status.",
       );
     } finally {
       setDistributorLoadingId(null);
@@ -2784,15 +2941,15 @@ const UserManagement: React.FC = () => {
           prev.map((item) =>
             item.id === userId
               ? {
-                  ...item,
-                  withdraw_hold: true,
-                  ignite_payout: item.ignite_payout
-                    ? {
-                        ...item.ignite_payout,
-                        allow_withdraw: false,
-                      }
-                    : item.ignite_payout,
-                }
+                ...item,
+                withdraw_hold: true,
+                ignite_payout: item.ignite_payout
+                  ? {
+                    ...item.ignite_payout,
+                    allow_withdraw: false,
+                  }
+                  : item.ignite_payout,
+              }
               : item,
           ),
         );
@@ -2800,26 +2957,26 @@ const UserManagement: React.FC = () => {
         setSelectedUser((current) =>
           current?.id === userId
             ? {
-                ...current,
-                withdraw_hold: true,
-                ignite_payout: current.ignite_payout
-                  ? {
-                      ...current.ignite_payout,
-                      allow_withdraw: false,
-                    }
-                  : current.ignite_payout,
-              }
+              ...current,
+              withdraw_hold: true,
+              ignite_payout: current.ignite_payout
+                ? {
+                  ...current.ignite_payout,
+                  allow_withdraw: false,
+                }
+                : current.ignite_payout,
+            }
             : current,
         );
 
         toast.success(
           response.data.message ||
-            "Withdrawals held successfully.",
+          "Withdrawals held successfully.",
         );
       } else {
         toast.error(
           response.data.message ||
-            "Unable to hold withdrawals.",
+          "Unable to hold withdrawals.",
         );
       }
     } catch (error: any) {
@@ -2827,7 +2984,7 @@ const UserManagement: React.FC = () => {
 
       toast.error(
         error?.response?.data?.message ||
-          "Unable to hold withdrawals.",
+        "Unable to hold withdrawals.",
       );
     } finally {
       setWithdrawLoadingId(null);
@@ -2852,15 +3009,15 @@ const UserManagement: React.FC = () => {
           prev.map((item) =>
             item.id === userId
               ? {
-                  ...item,
-                  withdraw_hold: false,
-                  ignite_payout: item.ignite_payout
-                    ? {
-                        ...item.ignite_payout,
-                        allow_withdraw: true,
-                      }
-                    : item.ignite_payout,
-                }
+                ...item,
+                withdraw_hold: false,
+                ignite_payout: item.ignite_payout
+                  ? {
+                    ...item.ignite_payout,
+                    allow_withdraw: true,
+                  }
+                  : item.ignite_payout,
+              }
               : item,
           ),
         );
@@ -2868,26 +3025,26 @@ const UserManagement: React.FC = () => {
         setSelectedUser((current) =>
           current?.id === userId
             ? {
-                ...current,
-                withdraw_hold: false,
-                ignite_payout: current.ignite_payout
-                  ? {
-                      ...current.ignite_payout,
-                      allow_withdraw: true,
-                    }
-                  : current.ignite_payout,
-              }
+              ...current,
+              withdraw_hold: false,
+              ignite_payout: current.ignite_payout
+                ? {
+                  ...current.ignite_payout,
+                  allow_withdraw: true,
+                }
+                : current.ignite_payout,
+            }
             : current,
         );
 
         toast.success(
           response.data.message ||
-            "Withdrawals released successfully.",
+          "Withdrawals released successfully.",
         );
       } else {
         toast.error(
           response.data.message ||
-            "Unable to release withdrawals.",
+          "Unable to release withdrawals.",
         );
       }
     } catch (error: any) {
@@ -2895,7 +3052,7 @@ const UserManagement: React.FC = () => {
 
       toast.error(
         error?.response?.data?.message ||
-          "Unable to release withdrawals.",
+        "Unable to release withdrawals.",
       );
     } finally {
       setWithdrawLoadingId(null);
@@ -2905,38 +3062,44 @@ const UserManagement: React.FC = () => {
   // ===================================================
   // PAGINATION PAGES
   // ===================================================
-
-  const paginationPages = useMemo(() => {
-    if (totalPages <= 5) {
-      return Array.from(
-        { length: totalPages },
-        (_, index) => index + 1,
-      );
+  const paginationPages = useMemo<PageItem[]>(() => {
+    // Kam pages ho to sab dikha do
+    if (totalPages <= 9) {
+      return Array.from({ length: totalPages }, (_, index) => index + 1);
     }
 
-    if (currentPage <= 3) {
-      return [1, 2, 3, 4, 5];
-    }
+    const pageSet = new Set<number>();
 
-    if (currentPage >= totalPages - 2) {
-      return [
-        totalPages - 4,
-        totalPages - 3,
-        totalPages - 2,
-        totalPages - 1,
-        totalPages,
-      ];
-    }
+    // Shuru ke 3 pages
+    [1, 2, 3].forEach((p) => pageSet.add(p));
 
-    return [
-      currentPage - 2,
-      currentPage - 1,
-      currentPage,
-      currentPage + 1,
-      currentPage + 2,
-    ];
+    // Current page ke aas-paas (prev, current, next)
+    [currentPage - 1, currentPage, currentPage + 1].forEach((p) => {
+      if (p >= 1 && p <= totalPages) pageSet.add(p);
+    });
+
+    // Last ke 2 pages
+    [totalPages - 1, totalPages].forEach((p) => pageSet.add(p));
+
+    const sorted = Array.from(pageSet).sort((a, b) => a - b);
+
+    const result: PageItem[] = [];
+
+    sorted.forEach((page, index) => {
+      if (index > 0) {
+        const gap = page - sorted[index - 1];
+    
+        // Koi bhi page chhuta ho to ... dikhao
+        if (gap > 1) {
+          result.push("ellipsis");
+        }
+      }
+    
+      result.push(page);
+    });
+
+    return result;
   }, [currentPage, totalPages]);
-
   // ===================================================
   // PERMISSION LOADING
   // ===================================================
@@ -3007,12 +3170,16 @@ const UserManagement: React.FC = () => {
               <button
                 type="button"
                 onClick={handleExportAll}
-                disabled={tabExportUsers.length === 0}
+                disabled={totalItems === 0 || exportLoading}
                 title={`Download ${getExportTabLabel()} users`}
                 className="flex h-11 items-center justify-center gap-2 rounded-xl border border-[#2D6FE8]/20 bg-[#EAF3FF] px-4 text-sm font-bold text-[#111827] shadow-sm transition hover:border-[#2D6FE8]/35 hover:bg-[#DFECFF] disabled:cursor-not-allowed disabled:opacity-50"
               >
-                <FiDownload size={16} />
-                {getExportButtonLabel()}
+                {exportLoading ? (
+                  <FiRefreshCw size={16} className="animate-spin" />
+                ) : (
+                  <FiDownload size={16} />
+                )}
+                {exportLoading ? "Exporting..." : getExportButtonLabel()}
               </button>
             )}
 
@@ -3029,7 +3196,7 @@ const UserManagement: React.FC = () => {
 
             <button
               type="button"
-              onClick={() => fetchUsers()}
+              onClick={() => setRefreshKey((key) => key + 1)}
               disabled={loading}
               className="flex h-11 items-center justify-center gap-2 rounded-xl border border-[#2D6FE8]/20 bg-white px-4 text-sm font-bold text-[#111827] shadow-sm transition hover:border-[#2D6FE8]/35 hover:bg-[#F4F8FD] disabled:opacity-50"
             >
@@ -3106,7 +3273,7 @@ const UserManagement: React.FC = () => {
                   type="text"
                   value={search}
                   onChange={(e) => handleSearch(e.target.value)}
-                  placeholder="Search name, email, phone, ID..."
+                  placeholder="Search name, email, phone, GSTIN, ID..."
                   className="h-11 w-full rounded-lg border border-[#D6E2F0] bg-[#F4F8FD] pl-10 pr-9 text-sm text-[#111827] outline-none transition placeholder:text-[#111827] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/15"
                 />
 
@@ -3126,52 +3293,46 @@ const UserManagement: React.FC = () => {
                   {
                     key: "all" as UserFilter,
                     label: "All",
-                    count: stats.total,
                   },
                   {
                     key: "customer" as UserFilter,
                     label: "Customers",
-                    count: stats.customers,
                   },
                   {
                     key: "distributor" as UserFilter,
                     label: "Distributors",
-                    count: stats.distributors,
                   },
                   {
                     key: "active" as UserFilter,
                     label: "Active",
-                    count: stats.active,
                   },
                   {
                     key: "inactive" as UserFilter,
                     label: "Inactive",
-                    count: stats.inactive,
                   },
                 ].map((tab) => {
                   const isActive = activeFilter === tab.key;
+                  const tabCount = getTabCount(tab.key);
 
                   return (
                     <button
                       key={tab.key}
                       type="button"
                       onClick={() => handleFilter(tab.key)}
-                      className={`flex shrink-0 items-center gap-2 rounded-md px-3.5 py-2 text-xs font-bold transition-all ${
-                        isActive
+                      className={`flex shrink-0 items-center gap-2 rounded-md px-3.5 py-2 text-xs font-bold transition-all ${isActive
                           ? "bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] text-white shadow-md shadow-[#2D6FE8]/20"
                           : "text-[#111827] hover:bg-white hover:text-[#111827]"
-                      }`}
+                        }`}
                     >
                       <span>{tab.label}</span>
 
                       <span
-                        className={`inline-flex min-w-[22px] items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
-                          isActive
+                        className={`inline-flex min-w-[22px] items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold ${isActive
                             ? "bg-white/20 text-white"
                             : "bg-[#EAF3FF] text-[#111827]"
-                        }`}
+                          }`}
                       >
-                        {tab.count}
+                        {tabCount === null ? "—" : tabCount}
                       </span>
                     </button>
                   );
@@ -3201,6 +3362,11 @@ const UserManagement: React.FC = () => {
                     Account Type
                   </th>
 
+                  {/* GSTIN COLUMN */}
+                  <th className="px-3 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-white">
+                    GSTIN
+                  </th>
+
                   <th className="px-3 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-white">
                     User Status
                   </th>
@@ -3220,26 +3386,9 @@ const UserManagement: React.FC = () => {
               </thead>
 
               <tbody>
-                {initialUsersLoading ? (
+                {initialUsersLoading || loading ? (
                   <tr>
-                    <td colSpan={8} className="px-3 py-16 text-center">
-                      <div className="flex flex-col items-center">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#111827]">
-                          <FiRefreshCw
-                            size={22}
-                            className="animate-spin"
-                          />
-                        </div>
-
-                        <p className="mt-4 text-sm font-bold text-[#111827]">
-                          Loading users...
-                        </p>
-                      </div>
-                    </td>
-                  </tr>
-                ) : loading && users.length === 0 ? (
-                  <tr>
-                    <td colSpan={8} className="px-3 py-16 text-center">
+                    <td colSpan={9} className="px-3 py-16 text-center">
                       <div className="flex flex-col items-center">
                         <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#111827]">
                           <FiRefreshCw
@@ -3256,7 +3405,7 @@ const UserManagement: React.FC = () => {
                   </tr>
                 ) : paginatedUsers.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-3 py-16 text-center">
+                    <td colSpan={9} className="px-3 py-16 text-center">
                       <div className="flex flex-col items-center">
                         <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#F4F8FD] text-[#111827]">
                           <FiUsers size={24} />
@@ -3297,14 +3446,16 @@ const UserManagement: React.FC = () => {
                     const kycUpdatedAt =
                       getKycStatusUpdatedAt(user);
 
+                    // GSTIN
+                    const gstin = getUserGstin(user);
+
                     return (
                       <tr
                         key={user.id}
-                        className={`border-b border-[#2D6FE8]/10 transition-all duration-300 ${
-                          isHighlighted
+                        className={`border-b border-[#2D6FE8]/10 transition-all duration-300 ${isHighlighted
                             ? "border-l-4 border-l-[#2D6FE8] bg-[#EAF3FF]/70 shadow-inner"
                             : "bg-white hover:bg-[#F4F8FD]"
-                        }`}
+                          }`}
                       >
                         <td className="px-3 py-4">
                           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F4F8FD] text-xs font-bold text-[#111827]">
@@ -3350,11 +3501,10 @@ const UserManagement: React.FC = () => {
 
                         <td className="px-3 py-4 text-center">
                           <span
-                            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-bold ${
-                              isDistributor
+                            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-bold ${isDistributor
                                 ? "border-[#2D6FE8]/25 bg-[#EAF3FF] text-[#111827]"
                                 : "border-[#D6E2F0] bg-[#F2F6FA] text-[#111827]"
-                            }`}
+                              }`}
                           >
                             {isDistributor ? (
                               <FiBriefcase size={12} />
@@ -3363,6 +3513,19 @@ const UserManagement: React.FC = () => {
                             )}
 
                             {getAccountLabel(user.account_type)}
+                          </span>
+                        </td>
+
+                        {/* GSTIN CELL */}
+                        <td className="px-3 py-4 text-center">
+                          <span
+                            title={gstin}
+                            className={`inline-flex max-w-[145px] items-center justify-center truncate rounded-lg border px-3 py-1.5 text-[10px] font-bold ${gstin === "N/A"
+                                ? "border-[#D6E2F0] bg-[#F3F4F6] text-[#6B7280]"
+                                : "border-[#2D6FE8]/25 bg-[#EAF3FF] text-[#2D6FE8]"
+                              }`}
+                          >
+                            {gstin}
                           </span>
                         </td>
 
@@ -3447,17 +3610,7 @@ const UserManagement: React.FC = () => {
 
           {/* MOBILE */}
           <div className="block lg:hidden">
-            {initialUsersLoading ? (
-              <div className="flex flex-col items-center px-5 py-16 text-center">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#111827]">
-                  <FiRefreshCw size={24} className="animate-spin" />
-                </div>
-
-                <p className="mt-4 text-sm font-bold text-[#111827]">
-                  Loading users...
-                </p>
-              </div>
-            ) : loading && users.length === 0 ? (
+            {initialUsersLoading || loading ? (
               <div className="flex flex-col items-center px-5 py-16 text-center">
                 <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#111827]">
                   <FiRefreshCw size={24} className="animate-spin" />
@@ -3493,14 +3646,15 @@ const UserManagement: React.FC = () => {
                 const kycUpdatedAt =
                   getKycStatusUpdatedAt(user);
 
+                const gstin = getUserGstin(user);
+
                 return (
                   <div
                     key={user.id}
-                    className={`border-b border-[#2D6FE8]/10 p-4 transition-all duration-300 ${
-                      isHighlighted
+                    className={`border-b border-[#2D6FE8]/10 p-4 transition-all duration-300 ${isHighlighted
                         ? "border-l-4 border-l-[#2D6FE8] bg-[#EAF3FF]/70"
                         : ""
-                    }`}
+                      }`}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex min-w-0 items-center gap-3">
@@ -3550,6 +3704,22 @@ const UserManagement: React.FC = () => {
 
                         <p className="mt-1 truncate text-xs font-bold text-[#111827]">
                           {formatDateOnly(registeredDate)}
+                        </p>
+                      </div>
+
+                      {/* MOBILE GSTIN */}
+                      <div className="col-span-2 rounded-xl border border-[#2D6FE8]/10 bg-[#F4F8FD] p-3">
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-[#111827]">
+                          GSTIN
+                        </p>
+
+                        <p
+                          className={`mt-1 break-all text-xs font-bold ${gstin === "N/A"
+                              ? "text-[#6B7280]"
+                              : "text-[#2D6FE8]"
+                            }`}
+                        >
+                          {gstin}
                         </p>
                       </div>
 
@@ -3616,7 +3786,7 @@ const UserManagement: React.FC = () => {
           </div>
 
           {/* PAGINATION */}
-          {!pageLoading && filteredUsers.length > 0 && (
+          {!pageLoading && totalItems > 0 && (
             <div className="border-t border-[#DCE6F2] bg-[#F8FBFF] px-4 py-4 sm:px-5">
               <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
                 <p className="text-xs text-[#111827]">
@@ -3630,7 +3800,7 @@ const UserManagement: React.FC = () => {
                   </span>{" "}
                   of{" "}
                   <span className="font-bold text-[#111827]">
-                    {filteredUsers.length}
+                    {totalItems}
                   </span>{" "}
                   entries
                 </p>
@@ -3638,36 +3808,40 @@ const UserManagement: React.FC = () => {
                 <div className="flex items-center gap-1.5">
                   <button
                     type="button"
-                    onClick={() =>
-                      setCurrentPage((page) => page - 1)
-                    }
-                    disabled={currentPage === 1}
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1 || loading}
                     className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#2D6FE8]/15 bg-white text-[#111827] disabled:cursor-not-allowed disabled:opacity-30"
                   >
                     <FiChevronLeft size={17} />
                   </button>
-
-                  {paginationPages.map((page) => (
-                    <button
-                      key={page}
-                      type="button"
-                      onClick={() => setCurrentPage(page)}
-                      className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold ${
-                        currentPage === page
-                          ? "bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] text-white shadow-md shadow-[#2D6FE8]/20"
-                          : "text-[#111827] hover:bg-[#F4F8FD] hover:text-[#111827]"
-                      }`}
-                    >
-                      {page}
-                    </button>
-                  ))}
+                  {paginationPages.map((page, index) =>
+                    page === "ellipsis" ? (
+                      <span
+                        key={`ellipsis-${index}`}
+                        className="flex h-9 min-w-9 items-center justify-center px-1 text-xs font-bold text-[#6B7280]"
+                      >
+                        ...
+                      </span>
+                    ) : (
+                      <button
+                        key={page}
+                        type="button"
+                        onClick={() => handlePageChange(page)}
+                        disabled={loading}
+                        className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold disabled:cursor-not-allowed ${currentPage === page
+                            ? "bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] text-white shadow-md shadow-[#2D6FE8]/20"
+                            : "text-[#111827] hover:bg-[#F4F8FD] hover:text-[#111827]"
+                          }`}
+                      >
+                        {page}
+                      </button>
+                    ),
+                  )}
 
                   <button
                     type="button"
-                    onClick={() =>
-                      setCurrentPage((page) => page + 1)
-                    }
-                    disabled={currentPage === totalPages}
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages || loading}
                     className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#2D6FE8]/15 bg-white text-[#111827] disabled:cursor-not-allowed disabled:opacity-30"
                   >
                     <FiChevronRight size={17} />
@@ -3706,7 +3880,7 @@ const UserManagement: React.FC = () => {
           open={createModalOpen}
           onClose={() => setCreateModalOpen(false)}
           onSuccess={() => {
-            fetchUsers();
+            setRefreshKey((key) => key + 1);
           }}
         />
       )}

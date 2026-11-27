@@ -378,14 +378,26 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
   }, [categoryId, categories]);
 
   const pricePreview = useMemo(() => {
-    const calculate = (mrp: string, discount: string) => {
+    const calculate = (mrp: string, discount: string, shipping: string) => {
       const mrpValue = Number(mrp) || 0;
       const discountValue = Math.min(100, Math.max(0, Number(discount) || 0));
+      const shippingValue = Number(shipping) || 0;
       const saved = (mrpValue * discountValue) / 100;
-      return { mrp: mrpValue, discount: discountValue, final: mrpValue - saved, saved };
+      const final = mrpValue - saved + shippingValue;
+      return {
+        mrp: mrpValue,
+        discount: discountValue,
+        final,
+        saved,
+        withShipping: shippingValue > 0,
+      };
     };
-    return { retail: calculate(retailMrp, retailDiscountValue), distributor: calculate(distributorMrp, distributorDiscountValue) };
-  }, [retailMrp, retailDiscountValue, distributorMrp, distributorDiscountValue]);
+  
+    return {
+      retail: calculate(retailMrp, retailDiscountValue, shippingCharge),
+      distributor: calculate(distributorMrp, distributorDiscountValue, shippingCharge),
+    };
+  }, [retailMrp, retailDiscountValue, distributorMrp, distributorDiscountValue, shippingCharge]);
 
   const checklist = useMemo(() => [
     { label: "Product name", done: !!name.trim() },
@@ -967,10 +979,40 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
 
               {/* RIGHT SIDE */}
               <aside className="min-w-0 space-y-6 lg:sticky lg:top-0 lg:self-start">
-                <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 to-blue-800 p-5 text-white shadow-lg shadow-blue-500/20"><div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" /><p className="relative text-xs font-medium text-blue-100">Customer pays (retail)</p>
-                  <div className="relative mt-1 flex items-end gap-2"><span className="text-3xl font-bold tracking-tight">₹{formatINR(pricePreview.retail.final)}</span>{pricePreview.retail.discount > 0 && pricePreview.retail.mrp > 0 && <span className="mb-1 text-sm text-blue-200 line-through">₹{formatINR(pricePreview.retail.mrp)}</span>}</div>
-                  <div className="relative mt-3 flex flex-wrap items-center gap-2 text-xs">{pricePreview.retail.discount > 0 && <span className="rounded-full bg-emerald-400/20 px-2.5 py-1 font-semibold text-emerald-100 ring-1 ring-emerald-300/30">{pricePreview.retail.discount}% off · save ₹{formatINR(pricePreview.retail.saved)}</span>}{pricePreview.distributor.mrp > 0 && <span className="rounded-full bg-white/10 px-2.5 py-1 font-medium ring-1 ring-white/20">Distributor ₹{formatINR(pricePreview.distributor.final)}</span>}{pricePreview.retail.mrp === 0 && <span className="text-blue-200">Enter MRP to preview final price</span>}</div>
-                </div>
+              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 to-blue-800 p-5 text-white shadow-lg shadow-blue-500/20">
+  <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
+  <p className="relative text-xs font-medium text-blue-100">
+    Customer pays (retail)
+  </p>
+  <div className="relative mt-1 flex items-end gap-2">
+    <span className="text-3xl font-bold tracking-tight">
+      ₹{formatINR(pricePreview.retail.final)}
+    </span>
+    {pricePreview.retail.discount > 0 && pricePreview.retail.mrp > 0 && (
+      <span className="mb-1 text-sm text-blue-200 line-through">
+        ₹{formatINR(pricePreview.retail.mrp)}
+      </span>
+    )}
+  </div>
+  <div className="relative mt-3 flex flex-wrap items-center gap-2 text-xs">
+    {pricePreview.retail.discount > 0 && (
+      <span className="rounded-full bg-emerald-400/20 px-2.5 py-1 font-semibold text-emerald-100 ring-1 ring-emerald-300/30">
+        {pricePreview.retail.discount}% off · save ₹{formatINR(pricePreview.retail.saved)}
+      </span>
+    )}
+    {pricePreview.distributor.mrp > 0 && (
+      <span className="rounded-full bg-white/10 px-2.5 py-1 font-medium ring-1 ring-white/20">
+        Distributor ₹{formatINR(pricePreview.distributor.final)}
+      </span>
+    )}
+    {pricePreview.retail.withShipping && (
+      <span className="text-blue-200">with shipping charge</span>
+    )}
+    {!pricePreview.retail.withShipping && pricePreview.retail.mrp === 0 && (
+      <span className="text-blue-200">Enter MRP to preview final price</span>
+    )}
+  </div>
+</div>
 
                 {/* PRICING */}
                 <SectionCard icon={<FaRupeeSign size={17} />} title="Pricing" subtitle="Retail, distributor and shipping">
@@ -982,10 +1024,10 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                   </div>
                     <div className="h-px bg-slate-100" />
                     <Field label="Commission value"><AdornedInput inputMode="numeric" value={commissionValue} placeholder="0" onChange={(value) => { if (isValidIntegerInput(value)) setCommissionValue(value); }} /></Field>
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    {/* <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-3 [&_input]:border-blue-200 [&_input]:bg-white [&_input]:focus:border-blue-500 [&_input]:focus:ring-blue-500/10"><div className="mb-2 flex items-center gap-2"><span className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-white shadow-sm ring-2 ring-blue-200"><FiAward size={16} /></span><span className="text-sm font-bold text-blue-800">Blue Coin</span></div><AdornedInput inputMode="numeric" value={blueCoin} placeholder="Enter blue coin value" onChange={(value) => { if (isValidIntegerInput(value)) setBlueCoin(value); }} /><p className="mt-1.5 text-xs text-blue-600">Enter the blue coin value</p></div>
                       <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-3 [&_input]:border-emerald-200 [&_input]:bg-white [&_input]:focus:border-emerald-500 [&_input]:focus:ring-emerald-500/10"><div className="mb-2 flex items-center gap-2"><span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-600 text-white shadow-sm ring-2 ring-emerald-200"><FiAward size={16} /></span><span className="text-sm font-bold text-emerald-800">Green Coin</span></div><AdornedInput inputMode="numeric" value={greenCoin} placeholder="Enter green coin value" onChange={(value) => { if (isValidIntegerInput(value)) setGreenCoin(value); }} /><p className="mt-1.5 text-xs text-emerald-600">Enter the green coin value</p></div>
-                    </div>
+                    </div> */}
                     <Field label="Shipping charge" icon={<FiTruck size={14} className="text-blue-500" />} error={errors.shipping_charge} hint="Enter 0 for free shipping"><AdornedInput prefix="₹" value={shippingCharge} placeholder="0" hasError={!!errors.shipping_charge} onChange={(value) => { if (isValidDecimalInput(value)) { setShippingCharge(value); setErrors((prev) => ({ ...prev, shipping_charge: undefined })); } }} /></Field>
                     {isElectronicsCategory && <div className="rounded-xl border border-blue-100 bg-blue-50/40 p-4"><Field label="Service Charge" required icon={<FiTool size={14} className="text-blue-500" />} error={errors.service_charge} hint="Only applicable for Electronics products"><AdornedInput prefix="₹" value={serviceCharge} placeholder="0" hasError={!!errors.service_charge} onChange={(value) => { if (isValidDecimalInput(value)) { setServiceCharge(value); setErrors((prev) => ({ ...prev, service_charge: undefined })); } }} /></Field></div>}
                   </div>

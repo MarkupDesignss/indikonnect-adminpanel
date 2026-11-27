@@ -4,6 +4,7 @@ export interface MenuItem {
   label: string;
   icon: string;
   module?: string;
+  group?: string;
   permission?: string;
   anyOf?: string[];
   allOf?: string[];
@@ -151,139 +152,56 @@ export const menuItems: MenuItem[] = [
   // =====================================================
   // FINANCE
   // =====================================================
- // =====================================================
-// FINANCE
-// =====================================================
-{
-  path: "/finance-heading",
-  label: "Finance",
-  icon: "account_balance",
-  isHeading: true,
-  children: [
-    {
-      path: "/finance",
-      label: "Order Operations",
-      icon: "account_balance",
-      module: "finance",
-      anyOf: [
-        "payout.view",
-        "return_refund.view",
-        "cancel.details",
-        "buyback.details",
-        "partner data exports.view",
-
-        // Finance Reports
-        "finance_sales_report.view",
-        "hsn-report.view",
-        "hsn-report.export",
-        "statewise-report.view",
-        "statewise-report.export",
-      ],
-      children: [
-        {
-          path: "/return-refund",
-          label: "Returns & Refunds",
-          icon: "assignment_return",
-          permission: "return_refund.view",
-          module: "return_refund",
-        },
-        {
-          path: "/Fiance/CancelRefund",
-          label: "Cancel & Refunds",
-          icon: "currency_exchange",
-          permission: "cancel.details",
-          module: "cancel",
-        },
-        {
-          path: "/Fiance/BuyBack",
-          label: "Buy Back",
-          icon: "replay",
-          permission: "buyback.details",
-          module: "buyback",
-        },
-        {
-          path: "/CreditNotes",
-          label: "Credit Notes",
-          icon: "receipt_long",
-          permission: "payout.view",
-          module: "payout",
-        },
-
-        // FINANCE SALES REPORT
-        {
-          path: "/Fiance/FinanceReport",
-          label: "Finance Sales Report",
-          icon: "receipt_long",
-          module: "finance_sales_report",
-          permission: "finance_sales_report.view",
-          anyOf: [
-            "finance_sales_report.view",
-            "finance_sales_report.download",
-          ],
-        },
-
-        // HSN REPORT
-        {
-          path: "/finance/hsn-report",
-          label: "HSN Report",
-          icon: "inventory_2",
-          module: "hsn-report",
-          permission: "hsn-report.view",
-          anyOf: [
-            "hsn-report.view",
-            "hsn-report.export",
-          ],
-        },
-
-        // STATEWISE REPORT
-        {
-          path: "/finance/statewise-report",
-          label: "Statewise Report",
-          icon: "map",
-          module: "statewise-report",
-          permission: "statewise-report.view",
-          anyOf: [
-            "statewise-report.view",
-            "statewise-report.export",
-          ],
-        },
-
-        {
-          path: "/Fiance/CommissionCalendar",
-          label: "Commission History",
-          icon: "calendar_month",
-          permission: "payout.view",
-          module: "payout",
-          anyOf: [
-            "payout.view",
-            "finance.commission export",
-            "finance.commission-export",
-            "finance.commission_export",
-            "finance.commissionExport",
-          ],
-        },
-        {
-          path: "/Payment",
-          label: "Payment Summary",
-          icon: "payments",
-          permission: "payout.view",
-          module: "payout",
-        },
-        {
-          path: "/IgniteExports",
-          label: "Partner Data Exports",
-          icon: "receipt_long",
-          module: "partner data exports",
-          permission: "partner data exports.view",
-          anyOf: [
-            "partner data exports.view",
-            "partner data exports.download",
-          ],
-        },
-      ],
-    },
-  ],
-},
+  {
+    path: "/finance-heading",
+    label: "Finance",
+    icon: "account_balance",
+    isHeading: true,
+    children: [
+      {
+        path: "/finance",
+        label: "Order Operations",
+        icon: "account_balance",
+        module: "finance",
+        anyOf: [
+          "payout.view",
+          "return_refund.view",
+          "cancel.details",
+          "buyback.details",
+        ],
+        children: [
+          {
+            path: "/return-refund",
+            label: "Returns & Refunds",
+            icon: "assignment_return",
+            permission: "return_refund.view",
+            module: "return_refund",
+          },
+          {
+            path: "/Fiance/CancelRefund",
+            label: "Cancel & Refunds",
+            icon: "currency_exchange",
+            permission: "cancel.details",
+            module: "cancel",
+          },
+          {
+            path: "/Fiance/BuyBack",
+            label: "Buy Back",
+            icon: "replay",
+            permission: "buyback.details",
+            module: "buyback",
+          },
+          {
+            path: "/Payment",
+            label: "Payment Summary",
+            icon: "payments",
+            permission: "payout.view",
+            module: "payout",
+          },
+        ],
+      },
+    ],
+  },
   // =====================================================
   // SALES
   // =====================================================
@@ -358,6 +276,99 @@ export const menuItems: MenuItem[] = [
         icon: "assignment_return",
         module: "return_refund_report",
         permission: "return_refund_report.view",
+      },
+    ],
+  },
+
+  // =====================================================
+  // FINANCE REPORTS — TOP-LEVEL DROPDOWN BESIDE REPORTS
+  // =====================================================
+  {
+    path: "/finance-report",
+    label: "Finance Report",
+    icon: "receipt_long",
+    module: "finance_report",
+    group: "reports",
+    anyOf: [
+      "payout.view",
+      "finance_sales_report.view",
+      "finance_sales_report.download",
+      "hsn-report.view",
+      "hsn-report.export",
+      "statewise-report.view",
+      "statewise-report.export",
+      "finance.commission export",
+      "finance.commission-export",
+      "finance.commission_export",
+      "finance.commissionExport",
+      "partner data exports.view",
+      "partner data exports.download",
+    ],
+    children: [
+      {
+        path: "/CreditNotes",
+        label: "Credit Notes",
+        icon: "receipt_long",
+        permission: "payout.view",
+        module: "payout",
+      },
+      {
+        path: "/Fiance/FinanceReport",
+        label: "Finance Sales Report",
+        icon: "receipt_long",
+        module: "finance_sales_report",
+        permission: "finance_sales_report.view",
+        anyOf: [
+          "finance_sales_report.view",
+          "finance_sales_report.download",
+        ],
+      },
+      {
+        path: "/finance/hsn-report",
+        label: "HSN Report",
+        icon: "inventory_2",
+        module: "hsn-report",
+        permission: "hsn-report.view",
+        anyOf: [
+          "hsn-report.view",
+          "hsn-report.export",
+        ],
+      },
+      {
+        path: "/finance/statewise-report",
+        label: "Statewise Report",
+        icon: "map",
+        module: "statewise-report",
+        permission: "statewise-report.view",
+        anyOf: [
+          "statewise-report.view",
+          "statewise-report.export",
+        ],
+      },
+      {
+        path: "/Fiance/CommissionCalendar",
+        label: "Commission History",
+        icon: "calendar_month",
+        permission: "payout.view",
+        module: "payout",
+        anyOf: [
+          "payout.view",
+          "finance.commission export",
+          "finance.commission-export",
+          "finance.commission_export",
+          "finance.commissionExport",
+        ],
+      },
+      {
+        path: "/IgniteExports",
+        label: "Partner Data Exports",
+        icon: "receipt_long",
+        module: "partner data exports",
+        permission: "partner data exports.view",
+        anyOf: [
+          "partner data exports.view",
+          "partner data exports.download",
+        ],
       },
     ],
   },

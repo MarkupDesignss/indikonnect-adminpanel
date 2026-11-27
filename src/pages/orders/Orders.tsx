@@ -10,6 +10,7 @@ import { createPortal } from "react-dom";
 import {
   FiSearch,
   FiChevronDown,
+  FiChevronUp,
   FiFilter,
   FiChevronLeft,
   FiChevronRight,
@@ -136,45 +137,26 @@ const SkeletonBlock: React.FC<{
   />
 );
 
+/** Skeleton for one collapsed order card (desktop) */
 const TableRowSkeleton: React.FC = () => (
-  <tr className="border-b border-[#2D6FE8]/10 bg-white">
-    <td className="px-3 py-3">
-      <SkeletonBlock className="h-5 w-24" />
-      <SkeletonBlock className="mt-1.5 h-3 w-32" />
-    </td>
-    <td className="px-3 py-3">
-      <div className="flex items-center gap-2.5">
-        <SkeletonBlock className="h-8 w-8 rounded-lg" />
-        <div className="min-w-0 flex-1">
-          <SkeletonBlock className="h-3 w-40" />
-          <SkeletonBlock className="mt-1 h-2.5 w-24" />
-          <SkeletonBlock className="mt-1 h-2.5 w-20" />
+  <div className="rounded-2xl border border-[#DCE6F2] bg-white px-5 py-4 shadow-sm">
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex items-center gap-3">
+        <SkeletonBlock className="h-9 w-9 rounded-xl" />
+        <SkeletonBlock className="h-10 w-10 rounded-xl" />
+        <div>
+          <SkeletonBlock className="h-4 w-36" />
+          <SkeletonBlock className="mt-1.5 h-3 w-64" />
         </div>
       </div>
-    </td>
-    <td className="px-3 py-3">
-      <SkeletonBlock className="h-5 w-20" />
-    </td>
-    <td className="px-3 py-3 text-center">
-      <SkeletonBlock className="mx-auto h-4 w-6" />
-    </td>
-    <td className="px-3 py-3">
-      <SkeletonBlock className="ml-auto h-4 w-20" />
-    </td>
-    <td className="px-3 py-3">
-      <SkeletonBlock className="h-5 w-24" />
-    </td>
-    <td className="px-3 py-3 text-center">
-      <SkeletonBlock className="mx-auto h-6 w-20 rounded-full" />
-    </td>
-    <td className="px-3 py-3 text-center">
-      <div className="flex items-center justify-center gap-1.5">
-        <SkeletonBlock className="h-8 w-8 rounded-lg" />
+      <div className="flex items-center gap-4">
+        <SkeletonBlock className="h-8 w-28" />
+        <SkeletonBlock className="h-8 w-20" />
         <SkeletonBlock className="h-8 w-8 rounded-lg" />
         <SkeletonBlock className="h-8 w-8 rounded-lg" />
       </div>
-    </td>
-  </tr>
+    </div>
+  </div>
 );
 
 const MobileRowSkeleton: React.FC = () => (
@@ -761,6 +743,73 @@ const normalizeOrderDetailsPayload = (raw: any) => {
   return data && typeof data === "object" ? data : null;
 };
 
+
+/**
+ * delivery_notes kabhi plain text hota hai, kabhi legacy system ka raw JSON string.
+ * JSON ho to usse readable label/value rows me badal do, warna text jaisa hai waisa.
+ */
+type ParsedDeliveryNotes =
+  | { kind: "text"; text: string }
+  | {
+      kind: "legacy";
+      rows: { label: string; value: string; wide?: boolean }[];
+    };
+
+const parseDeliveryNotes = (raw: unknown): ParsedDeliveryNotes => {
+  const text = String(raw ?? "").trim();
+  if (!text.startsWith("{")) return { kind: "text", text };
+
+  try {
+    const parsed = JSON.parse(text);
+    const d = parsed?.legacy_delivery;
+    const li = parsed?.legacy_delivery_item;
+    if (!d && !li) return { kind: "text", text };
+
+    const fmtDateTime = (v: unknown) => {
+      if (!v) return "";
+      const dt = new Date(String(v).replace(" ", "T"));
+      if (Number.isNaN(dt.getTime())) return String(v);
+      return dt.toLocaleString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      });
+    };
+
+    const candidates: { label: string; value: unknown; wide?: boolean }[] = [
+      { label: "Shipment Status", value: d?.shipment_status },
+      { label: "Shipment Date", value: fmtDateTime(d?.shipment_date) },
+      { label: "Carrier", value: d?.carrier_name },
+      { label: "Invoice No.", value: d?.invoice_number },
+      { label: "Invoice Date", value: fmtDateTime(d?.invoice_date) },
+      { label: "E-way Bill", value: d?.eway_bill_number },
+      { label: "Contact Person", value: d?.delivery_contact_person },
+      { label: "Contact Phone", value: d?.delivery_contact_phone },
+      { label: "Item", value: li?.item_name, wide: true },
+      { label: "SKU", value: li?.product_code_sku },
+      { label: "Quantity", value: li?.quantity },
+      { label: "Delivery Address", value: d?.delivery_address, wide: true },
+    ];
+
+    const rows = candidates
+      .filter(
+        (c) => c.value !== null && c.value !== undefined && c.value !== "",
+      )
+      .map((c) => ({
+        label: c.label,
+        value: String(c.value),
+        wide: c.wide,
+      }));
+
+    return rows.length > 0 ? { kind: "legacy", rows } : { kind: "text", text };
+  } catch {
+    return { kind: "text", text };
+  }
+};
+
 const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
   isOpen,
   onClose,
@@ -1339,7 +1388,7 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
           </div>
         </div>
 
-        <div className="max-h-[calc(95vh-190px)] overflow-y-auto p-5 sm:p-6">
+        <div className="max-h-[calc(95vh-190px)] overflow-y-auto overflow-x-hidden p-5 sm:p-6">
           {activeTab === "items" && (
             <div className="space-y-5">
               <div className="overflow-hidden rounded-2xl border border-[#2D6FE8]/15">
@@ -1900,25 +1949,39 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
                   ))}
                   {trackingInfo ? (
                     <>
-                      <div className="flex items-center justify-between rounded-xl border border-[#2D6FE8]/10 bg-white p-3">
-                        <span className="text-xs text-[#6B7280]">
+                      <div className="flex flex-col gap-1 rounded-xl border border-[#2D6FE8]/10 bg-white p-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+                        <span className="shrink-0 text-xs text-[#6B7280]">
                           Courier Company
                         </span>
-                        <span className="text-sm font-semibold text-[#111827]">
-                          {trackingInfo.courier_tracking_id || "N/A"}
+                        <span className="min-w-0 break-words text-sm font-semibold text-[#111827] sm:text-right">
+                          {trackingInfo.courier_company || "N/A"}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between rounded-xl border border-[#2D6FE8]/10 bg-white p-3">
-                        <span className="text-xs text-[#6B7280]">
+                      <div className="flex flex-col gap-1 rounded-xl border border-[#2D6FE8]/10 bg-white p-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+                        <span className="shrink-0 text-xs text-[#6B7280]">
                           Tracking Number
                         </span>
-                        <span className="text-sm font-semibold text-[#111827]">
+                        <span className="min-w-0 break-all text-sm font-semibold text-[#111827] sm:text-right">
                           {trackingInfo.courier_tracking_id || "N/A"}
                         </span>
                       </div>
+                      {trackingInfo.status && (
+                        <div className="flex flex-col gap-1 rounded-xl border border-[#2D6FE8]/10 bg-white p-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+                          <span className="shrink-0 text-xs text-[#6B7280]">
+                            Shipment Status
+                          </span>
+                          <span
+                            className={`inline-flex w-fit rounded-full border px-2.5 py-1 text-[11px] font-bold ${getStatusBadge(
+                              String(trackingInfo.status),
+                            )}`}
+                          >
+                            {getStatusText(String(trackingInfo.status))}
+                          </span>
+                        </div>
+                      )}
                       {trackingInfo.courier_delivery_date && (
-                        <div className="flex items-center justify-between rounded-xl border border-[#2D6FE8]/10 bg-white p-3">
-                          <span className="text-xs text-[#6B7280]">
+                        <div className="flex flex-col gap-1 rounded-xl border border-[#2D6FE8]/10 bg-white p-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+                          <span className="shrink-0 text-xs text-[#6B7280]">
                             Expected Delivery
                           </span>
                           <span className="text-sm font-semibold text-[#111827]">
@@ -1926,16 +1989,42 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
                           </span>
                         </div>
                       )}
-                      {trackingInfo.delivery_notes && (
-                        <div className="flex items-center justify-between rounded-xl border border-[#2D6FE8]/10 bg-white p-3">
-                          <span className="text-xs text-[#6B7280]">
-                            Delivery Notes
-                          </span>
-                          <span className="text-sm font-semibold text-[#111827]">
-                            {trackingInfo.delivery_notes}
-                          </span>
-                        </div>
-                      )}
+                      {trackingInfo.delivery_notes &&
+                        (() => {
+                          const notes = parseDeliveryNotes(
+                            trackingInfo.delivery_notes,
+                          );
+                          return (
+                            <div className="rounded-xl border border-[#2D6FE8]/10 bg-white p-3">
+                              <span className="text-xs font-semibold text-[#6B7280]">
+                                Delivery Notes
+                              </span>
+                              {notes.kind === "legacy" ? (
+                                <dl className="mt-2.5 grid grid-cols-1 gap-x-6 gap-y-2.5 sm:grid-cols-2">
+                                  {notes.rows.map((row) => (
+                                    <div
+                                      key={row.label}
+                                      className={`min-w-0 rounded-lg bg-[#F4F8FD] px-3 py-2 ${
+                                        row.wide ? "sm:col-span-2" : ""
+                                      }`}
+                                    >
+                                      <dt className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
+                                        {row.label}
+                                      </dt>
+                                      <dd className="mt-0.5 break-words text-xs font-semibold leading-5 text-[#111827]">
+                                        {row.value}
+                                      </dd>
+                                    </div>
+                                  ))}
+                                </dl>
+                              ) : (
+                                <p className="mt-2 whitespace-pre-wrap break-words text-sm font-medium leading-6 text-[#111827]">
+                                  {notes.text}
+                                </p>
+                              )}
+                            </div>
+                          );
+                        })()}
                     </>
                   ) : indiaPostItems.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-6 text-center">
@@ -2952,6 +3041,7 @@ const DeliverPopup: React.FC<DeliverPopupProps> = ({
     </GlobalModal>
   );
 };
+
 
 // =====================================================
 // ORDERS TABLE — ORDER-WISE VIEW (items nested inside each order)
@@ -4078,8 +4168,90 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     setShowDispatchPopup(true);
   };
 
+  /**
+   * Skeleton sirf PEHLI baar dikhao (jab abhi tak koi order load nahi hua).
+   * Dispatch / ship / deliver ke baad refresh hone par list jaisi hai waisi
+   * rehti hai (flicker nahi) — bas upar ek patli loading bar chalti hai.
+   */
   const showSkeletonRows =
-    loading || (orders.length > 0 && (categoriesLoading || brandsLoading));
+    (loading && orders.length === 0) ||
+    (orders.length > 0 && (categoriesLoading || brandsLoading) && loading);
+  const isRefreshing = loading && orders.length > 0;
+
+  /* =====================================================
+     EXPAND / COLLAPSE (accordion)
+     - Pehla order by default khula
+     - Page / filter / search badalne par phir se sirf pehla khula
+     ===================================================== */
+
+  const [expandedOrders, setExpandedOrders] = useState<Set<string>>(
+    () => new Set(),
+  );
+
+  const firstVisibleId = visibleGroups[0]?.id ?? null;
+  const expandKey = [
+    currentPage,
+    debouncedSearch,
+    statusFilter,
+    categoryFilter,
+    brandFilter,
+    orderTypeFilter,
+    dateRangeFilter,
+    firstVisibleId,
+  ].join("|");
+  const lastExpandKeyRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!firstVisibleId) return;
+    if (lastExpandKeyRef.current === expandKey) return;
+    lastExpandKeyRef.current = expandKey;
+    setExpandedOrders(new Set([firstVisibleId]));
+  }, [expandKey, firstVisibleId]);
+
+  const toggleOrderExpanded = (id: string) => {
+    setExpandedOrders((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const expandAllOrders = () =>
+    setExpandedOrders(new Set(visibleGroups.map((g) => g.id)));
+  const collapseAllOrders = () => setExpandedOrders(new Set());
+
+  const allVisibleExpanded =
+    visibleGroups.length > 0 &&
+    visibleGroups.every((g) => expandedOrders.has(g.id));
+  const anyVisibleExpanded = visibleGroups.some((g) =>
+    expandedOrders.has(g.id),
+  );
+
+  /** delivered / total progress for the order header */
+  const getOrderProgress = (group: OrderGroup) => {
+    const total = group.items.length;
+    const delivered = group.items.filter(
+      (it) => getItemStatus(it) === "delivered",
+    ).length;
+    const percent = total > 0 ? Math.round((delivered / total) * 100) : 0;
+    return { total, delivered, percent };
+  };
+
+  /** windowed page numbers: 1 … 4 5 6 … 20 */
+  const pageNumbers = useMemo<(number | "dots-l" | "dots-r")[]>(() => {
+    if (totalPages <= 7) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+    const pages: (number | "dots-l" | "dots-r")[] = [1];
+    const start = Math.max(2, currentPage - 1);
+    const end = Math.min(totalPages - 1, currentPage + 1);
+    if (start > 2) pages.push("dots-l");
+    for (let p = start; p <= end; p++) pages.push(p);
+    if (end < totalPages - 1) pages.push("dots-r");
+    pages.push(totalPages);
+    return pages;
+  }, [currentPage, totalPages]);
 
   /* ---------- shared small renderers ---------- */
 
@@ -4340,6 +4512,11 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     );
   };
 
+
+  /* =====================================================
+     RENDER
+     ===================================================== */
+
   if (initialLoading) {
     return (
       <div className="rounded-2xl border border-[#DCE6F2] bg-white p-10 shadow-sm">
@@ -4377,6 +4554,591 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       </div>
     );
   }
+
+  /** small stacked product thumbnails shown in the order header */
+  const renderThumbStack = (group: OrderGroup) => {
+    const shown = group.items.slice(0, 3);
+    const extra = group.items.length - shown.length;
+    return (
+      <div className="flex items-center -space-x-2">
+        {shown.map((it) =>
+          it.image ? (
+            <img
+              key={it.id}
+              src={it.image}
+              alt={it.productName}
+              title={it.productName}
+              className="h-8 w-8 rounded-lg border-2 border-white bg-white object-cover shadow-sm"
+            />
+          ) : (
+            <div
+              key={it.id}
+              title={it.productName}
+              className="flex h-8 w-8 items-center justify-center rounded-lg border-2 border-white bg-[#DBEAFE] text-[#2D6FE8] shadow-sm"
+            >
+              <FiPackage size={12} />
+            </div>
+          ),
+        )}
+        {extra > 0 && (
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg border-2 border-white bg-[#2D6FE8] text-[10px] font-bold text-white shadow-sm">
+            +{extra}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  /** one order = one expandable card */
+  const renderOrderCard = (group: OrderGroup) => {
+    const cancelState = getOrderCancelReturnState(group);
+    const orderMenuId = `order:${group.id}`;
+    const isExpanded = expandedOrders.has(group.id);
+    const isSelected = selectedOrderId === group.id;
+    const progress = getOrderProgress(group);
+    const panelId = `order-panel-${group.id}`;
+
+    return (
+      <motion.div
+        layout="position"
+        key={group.id}
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25 }}
+        className={`overflow-hidden rounded-2xl border bg-white transition-shadow ${
+          isExpanded
+            ? "border-[#2D6FE8]/35 shadow-[0_14px_34px_-18px_rgba(45,111,232,0.45)]"
+            : "border-[#DCE6F2] shadow-sm hover:border-[#2D6FE8]/30 hover:shadow-[0_10px_24px_-16px_rgba(45,111,232,0.35)]"
+        } ${isSelected ? "ring-2 ring-[#2D6FE8]/25" : ""}`}
+      >
+        {/* ---------- ORDER HEADER (click anywhere to expand / collapse) ---------- */}
+        <div
+          role="button"
+          tabIndex={0}
+          aria-expanded={isExpanded}
+          aria-controls={panelId}
+          onClick={() => toggleOrderExpanded(group.id)}
+          onKeyDown={(e) => {
+            if (e.target !== e.currentTarget) return;
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              toggleOrderExpanded(group.id);
+            }
+          }}
+          className={`relative flex cursor-pointer select-none flex-col gap-3 px-4 py-3.5 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#2D6FE8]/40 sm:px-5 lg:flex-row lg:items-center lg:justify-between ${
+            isExpanded
+              ? "bg-gradient-to-r from-[#EAF3FF] via-[#F1F7FF] to-white"
+              : "bg-white hover:bg-[#F8FBFF]"
+          }`}
+        >
+          {/* accent bar */}
+          <span
+            className={`absolute left-0 top-0 h-full w-1 transition-colors ${
+              isExpanded ? "bg-[#2D6FE8]" : "bg-transparent"
+            }`}
+          />
+
+          {/* LEFT: chevron + order identity */}
+          <div className="flex min-w-0 items-start gap-3 sm:items-center">
+            <button
+              type="button"
+              aria-label={isExpanded ? "Collapse order" : "Expand order"}
+              title={isExpanded ? "Collapse" : "Expand"}
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleOrderExpanded(group.id);
+              }}
+              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border transition-all ${
+                isExpanded
+                  ? "border-transparent bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] text-white shadow-[0_8px_16px_-8px_rgba(45,111,232,0.6)]"
+                  : "border-[#2D6FE8]/20 bg-[#F4F8FD] text-[#2D6FE8] hover:border-transparent hover:bg-[#2D6FE8] hover:text-white"
+              }`}
+            >
+              {isExpanded ? (
+                <FiChevronUp size={18} strokeWidth={2.5} />
+              ) : (
+                <FiChevronDown size={18} strokeWidth={2.5} />
+              )}
+            </button>
+
+            <div className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-[#2D6FE8] shadow-sm sm:flex">
+              <FiPackage size={18} />
+            </div>
+
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-sm font-bold tracking-tight text-[#111827]">
+                  {group.id}
+                </p>
+                <span
+                  className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-0.5 text-[10px] font-bold ${getStatusBadge(
+                    group.orderStatus,
+                  )}`}
+                >
+                  <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                  {formatStatus(group.orderStatus)}
+                </span>
+                {renderCancelReturnPill(cancelState)}
+              </div>
+              <p className="mt-1 flex flex-wrap items-center gap-x-1.5 text-[11px] text-[#4B5563]">
+                <span className="inline-flex items-center gap-1 font-semibold text-[#111827]">
+                  <FiUser size={11} className="text-[#2D6FE8]" />
+                  {group.customer}
+                </span>
+                <span className="text-[#9CA3AF]">•</span>
+                <span className="inline-flex items-center gap-1">
+                  <FiCalendar size={11} className="text-[#2D6FE8]" />
+                  {group.date}
+                </span>
+                <span className="text-[#9CA3AF]">•</span>
+                <span className="capitalize">
+                  {group.orderType === "retail" ? "Customer" : group.orderType}
+                </span>
+                <span className="text-[#9CA3AF]">•</span>
+                <span>
+                  {group.items.length} item{group.items.length > 1 ? "s" : ""}
+                </span>
+              </p>
+            </div>
+          </div>
+
+          {/* RIGHT: thumbs + progress + total + actions */}
+          <div className="flex flex-wrap items-center justify-between gap-x-5 gap-y-3 pl-12 lg:justify-end lg:pl-0">
+            <div className="flex items-center gap-4">
+              {!isExpanded && renderThumbStack(group)}
+
+              <div className="w-[120px]">
+                <div className="flex items-center justify-between text-[10px] font-semibold text-[#4B5563]">
+                  <span>Delivered</span>
+                  <span className="text-[#111827]">
+                    {progress.delivered}/{progress.total}
+                  </span>
+                </div>
+                <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-[#DCE6F2]">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] transition-all duration-500"
+                    style={{ width: `${progress.percent}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className="text-right">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-[#6B7280]">
+                  Order Total
+                </p>
+                <p className="text-sm font-bold text-[#1E40AF]">
+                  {group.total}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleViewOrder(group.id);
+                }}
+                className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#2D6FE8]/20 bg-white text-[#2D6FE8] transition-all hover:border-transparent hover:bg-[#2D6FE8] hover:text-white hover:shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)]"
+                title="View Order"
+              >
+                <FiEye size={14} />
+              </button>
+
+              <div
+                className="action-menu-container relative"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <button
+                  type="button"
+                  onClick={(event) =>
+                    toggleMenu(orderMenuId, event.currentTarget, 48)
+                  }
+                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#2D6FE8]/20 bg-white text-[#2D6FE8] transition-all hover:border-transparent hover:bg-[#2D6FE8] hover:text-white"
+                  title="Order Actions"
+                >
+                  <FiMoreVertical size={14} />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ---------- ORDER BODY (animated expand / collapse) ---------- */}
+        <AnimatePresence initial={false}>
+          {isExpanded && (
+            <motion.div
+              id={panelId}
+              key="body"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1] }}
+              className="overflow-hidden"
+            >
+              <div className="border-t border-[#2D6FE8]/10">
+                {/* DESKTOP: items table */}
+                <div className="hidden overflow-x-auto lg:block">
+                  <table className="w-full min-w-[960px] border-collapse">
+                    <thead>
+                      <tr className="bg-[#F4F8FD]">
+                        {[
+                          { label: "Item Ref", align: "text-left" },
+                          { label: "Product", align: "text-left" },
+                          { label: "SKU", align: "text-left" },
+                          { label: "Qty", align: "text-center" },
+                          { label: "Amount", align: "text-right" },
+                          { label: "Tracking No.", align: "text-left" },
+                          { label: "Status", align: "text-center" },
+                          { label: "Item Actions", align: "text-center" },
+                        ].map((col) => (
+                          <th
+                            key={col.label}
+                            className={`whitespace-nowrap px-3 py-2.5 text-[10px] font-bold uppercase tracking-wider text-[#4B5563] ${col.align}`}
+                          >
+                            {col.label}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {group.items.map((item) => {
+                        const itemStatusBadge = getStatusBadge(
+                          item.delivery_status || item.status || "pending",
+                        );
+
+                        return (
+                          <tr
+                            key={`${group.id}-${item.id}`}
+                            className="border-t border-[#2D6FE8]/10 bg-white transition hover:bg-[#FAFBFF]"
+                          >
+                            <td className="px-3 py-3">
+                              <div className="flex items-center gap-2">
+                                <span className="h-6 w-0.5 rounded-full bg-[#2D6FE8]/30" />
+                                <span className="inline-flex whitespace-nowrap rounded-lg bg-[#EAF3FF] px-2 py-1 text-[10px] font-bold tracking-wide text-[#2D6FE8]">
+                                  {item.itemReferenceId || "N/A"}
+                                </span>
+                              </div>
+                            </td>
+
+                            <td className="px-3 py-3">
+                              <div className="flex items-center gap-2.5">
+                                {item.image ? (
+                                  <img
+                                    src={item.image}
+                                    alt={item.productName}
+                                    className="h-9 w-9 flex-shrink-0 rounded-lg border border-[#2D6FE8]/10 object-cover"
+                                  />
+                                ) : (
+                                  <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-[#EAF3FF] text-[#2D6FE8]">
+                                    <FiPackage size={14} />
+                                  </div>
+                                )}
+
+                                <div className="min-w-0 max-w-[260px]">
+                                  <p
+                                    title={item.productName}
+                                    className="break-words text-xs font-medium leading-4 text-[#111827]"
+                                  >
+                                    {item.productName
+                                      ?.trim()
+                                      .split(/\s+/)
+                                      .slice(0, 3)
+                                      .join(" ")}
+                                  </p>
+
+                                  {(item.categoryName || item.brandName) && (
+                                    <div className="mt-0.5 flex flex-wrap items-center gap-1">
+                                      {item.categoryName && (
+                                        <span
+                                          title={item.categoryName}
+                                          className="rounded-md bg-[#F4F8FD] px-1.5 py-0.5 text-[10px] text-[#4B5563]"
+                                        >
+                                          {item.categoryName
+                                            .trim()
+                                            .split(/\s+/)
+                                            .slice(0, 3)
+                                            .join(" ")}
+                                        </span>
+                                      )}
+                                      {item.brandName && (
+                                        <span
+                                          title={item.brandName}
+                                          className="rounded-md bg-[#FFF7D6] px-1.5 py-0.5 text-[10px] text-[#A16207]"
+                                        >
+                                          {item.brandName
+                                            .trim()
+                                            .split(/\s+/)
+                                            .slice(0, 3)
+                                            .join(" ")}
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </td>
+
+                            <td className="px-3 py-3">
+                              <span className="inline-flex whitespace-nowrap rounded-lg bg-[#F4F8FD] px-2 py-1 text-[11px] font-bold tracking-wide text-[#111827]">
+                                {item.sku}
+                              </span>
+                            </td>
+                            <td className="px-3 py-3 text-center text-xs font-semibold text-[#111827]">
+                              {item.quantity}
+                            </td>
+                            <td className="whitespace-nowrap px-3 py-3 text-right text-xs font-bold text-[#111827]">
+                              {item.total}
+                            </td>
+                            <td className="px-3 py-3">
+                              {item.courier_tracking_id ? (
+                                <div className="space-y-1">
+                                  <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-[#EAF3FF] px-2 py-1 text-[10px] font-bold text-[#2D6FE8]">
+                                    <FiTruck size={11} />
+                                    {item.courier_tracking_id}
+                                  </span>
+                                  {item.indiaPost && (
+                                    <>
+                                      <p className="text-[10px] font-semibold text-[#4B5563]">
+                                        India Post ·{" "}
+                                        {indiaPostStatus(item.indiaPost)}
+                                      </p>
+                                      <p
+                                        className="max-w-[200px] truncate text-[10px] text-[#6B7280]"
+                                        title={
+                                          item.indiaPost.latest_event || ""
+                                        }
+                                      >
+                                        {item.indiaPost.latest_event ||
+                                          "Awaiting courier scan"}
+                                      </p>
+                                    </>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="text-xs text-[#6B7280]">
+                                  —
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-3 py-3 text-center">
+                              <span
+                                className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-1 text-[10px] font-bold ${itemStatusBadge}`}
+                              >
+                                <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                                {formatStatus(
+                                  item.delivery_status ||
+                                    item.status ||
+                                    "pending",
+                                )}
+                              </span>
+                            </td>
+
+                            <td className="px-3 py-3 text-center">
+                              {renderItemActionButtons(group, item)}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* MOBILE: item cards */}
+                <div className="space-y-3 bg-[#FAFBFF] p-3 lg:hidden">
+                  {group.items.map((item) => {
+                    const isDispatchable = canItemDispatch(item) && canDispatch;
+                    const isShipable = canItemShip(item) && canShip;
+                    const isDeliverable = canItemDeliver(item) && canDeliver;
+                    const isUndeliverable =
+                      canItemMarkUndelivered(item) && canMarkUndelivered;
+                    const isDelivered = isFullyDelivered(item);
+                    const isMarking = markingUndelivered.has(
+                      `${group.id}-${item.id}`,
+                    );
+                    const hasInvoice = Boolean(item.invoiceNumber);
+
+                    return (
+                      <div
+                        key={`${group.id}-${item.id}`}
+                        className="rounded-xl border border-[#2D6FE8]/10 bg-white p-3 shadow-sm"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="inline-flex rounded-lg bg-[#EAF3FF] px-2 py-0.5 text-[11px] font-bold text-[#2D6FE8]">
+                            {item.itemReferenceId || "N/A"}
+                          </span>
+                          <span
+                            className={`inline-flex whitespace-nowrap rounded-full border px-2.5 py-1 text-[10px] font-bold ${getStatusBadge(
+                              item.delivery_status || item.status || "pending",
+                            )}`}
+                          >
+                            {formatStatus(
+                              item.delivery_status || item.status || "pending",
+                            )}
+                          </span>
+                        </div>
+
+                        <div className="mt-2 flex items-center gap-2.5">
+                          {item.image ? (
+                            <img
+                              src={item.image}
+                              alt={item.productName}
+                              className="h-10 w-10 flex-shrink-0 rounded-lg border border-[#2D6FE8]/10 object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-[#EAF3FF] text-[#2D6FE8]">
+                              <FiPackage size={14} />
+                            </div>
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <p className="break-words text-xs font-medium leading-4 text-[#111827]">
+                              {item.productName}
+                            </p>
+                            {(item.categoryName || item.brandName) && (
+                              <div className="mt-0.5 space-y-0.5 text-[10px] leading-4 text-[#4B5563]">
+                                {item.categoryName && (
+                                  <p className="break-words">
+                                    <span className="font-medium text-[#374151]">
+                                      Category:
+                                    </span>{" "}
+                                    {item.categoryName}
+                                  </p>
+                                )}
+                                {item.brandName && (
+                                  <p className="break-words">
+                                    <span className="font-medium text-[#374151]">
+                                      Brand:
+                                    </span>{" "}
+                                    {item.brandName}
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                            <p className="mt-1 break-words text-[11px] text-[#4B5563]">
+                              SKU: {item.sku} • Qty: {item.quantity}
+                            </p>
+                          </div>
+                          <span className="ml-auto shrink-0 text-xs font-bold text-[#2D6FE8]">
+                            {item.total}
+                          </span>
+                        </div>
+
+                        {item.indiaPost && item.courier_tracking_id && (
+                          <div className="mt-2 rounded-xl border border-[#2D6FE8]/15 bg-[#EAF3FF] p-2.5 text-[11px]">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <span className="font-bold text-[#2D6FE8]">
+                                India Post: {item.indiaPost.awb}
+                              </span>
+                              <span className="font-semibold text-[#111827]">
+                                {indiaPostStatus(item.indiaPost)}
+                              </span>
+                            </div>
+                            <p className="mt-1 text-[#4B5563]">
+                              {item.indiaPost.latest_event ||
+                                "Awaiting courier scan"}
+                            </p>
+                          </div>
+                        )}
+
+                        {!item.indiaPost && item.courier_tracking_id && (
+                          <div className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-[#EAF3FF] px-2 py-1 text-[11px] font-semibold text-[#2D6FE8]">
+                            <FiTruck size={11} />
+                            {item.courier_tracking_id}
+                          </div>
+                        )}
+
+                        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                          {isDispatchable && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                openDispatchChoicePopup(group, item)
+                              }
+                              className="flex-1 rounded-lg bg-[#2D6FE8] px-3 py-2 text-[11px] font-bold text-white"
+                            >
+                              Dispatch
+                            </button>
+                          )}
+                          {isShipable && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedOrderForShip(group);
+                                setSelectedItemsForShip([item]);
+                                setShowShipPopup(true);
+                              }}
+                              className="flex-1 rounded-lg bg-[#2D6FE8] px-3 py-2 text-[11px] font-bold text-white"
+                            >
+                              Ship
+                            </button>
+                          )}
+                          {isDeliverable && !isDelivered && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedOrderForDeliver(group);
+                                setSelectedItemsForDeliver([item]);
+                                setShowDeliverPopup(true);
+                              }}
+                              className="flex-1 rounded-lg bg-[#2D6FE8] px-3 py-2 text-[11px] font-bold text-white"
+                            >
+                              Delivered
+                            </button>
+                          )}
+                          {isUndeliverable && (
+                            <button
+                              type="button"
+                              onClick={() => handleMarkUndelivered(group, item)}
+                              disabled={isMarking}
+                              className="flex-1 rounded-lg bg-[#C23B32] px-3 py-2 text-[11px] font-bold text-white disabled:opacity-60"
+                            >
+                              {isMarking ? "Saving..." : "Undelivered"}
+                            </button>
+                          )}
+                          {hasInvoice && group.orderId && canViewInvoice && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleOpenInvoicePdf(
+                                  group.orderId!,
+                                  item.lineId || parseInt(item.id),
+                                )
+                              }
+                              className="flex-1 rounded-lg bg-[#EAF3FF] px-3 py-2 text-[11px] font-bold text-[#2D6FE8]"
+                            >
+                              Invoice
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* ORDER FOOTER: contact + collapse */}
+                <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[#2D6FE8]/10 bg-[#F8FBFF] px-4 py-2.5 sm:px-5">
+                  <p className="min-w-0 truncate text-[11px] text-[#6B7280]">
+                    {group.userEmail !== "N/A" && (
+                      <span className="mr-3">{group.userEmail}</span>
+                    )}
+                    {group.userPhone !== "N/A" && <span>{group.userPhone}</span>}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => toggleOrderExpanded(group.id)}
+                    className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-bold text-[#2D6FE8] transition hover:bg-[#EAF3FF]"
+                  >
+                    <FiChevronUp size={14} />
+                    Collapse
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
+    );
+  };
 
   return (
     <>
@@ -4474,10 +5236,11 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
               <button
                 type="button"
                 onClick={clearFilters}
-                className={`h-11 rounded-xl px-3 text-xs font-semibold transition-all ${hasActiveFilters
-                  ? "bg-[#EAF3FF] text-[#2D6FE8] hover:bg-[#DBEAFE]"
-                  : "text-[#9CA3AF] hover:text-[#2D6FE8]"
-                  }`}
+                className={`h-11 rounded-xl px-3 text-xs font-semibold transition-all ${
+                  hasActiveFilters
+                    ? "bg-[#EAF3FF] text-[#2D6FE8] hover:bg-[#DBEAFE]"
+                    : "text-[#9CA3AF] hover:text-[#2D6FE8]"
+                }`}
               >
                 <FiFilter size={14} className="mr-1.5 inline" />
                 Clear
@@ -4560,675 +5323,154 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
               </button>
             </div>
           )}
-        </div>
 
-        {/* ORDER TABLE — ORDER WISE, ITEMS NESTED */}
-        <div className="overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white shadow-sm">
-          <div className="hidden overflow-x-auto lg:block">
-            <table className="w-full min-w-[1120px] border-collapse">
-              <thead>
-                <tr className="bg-[#4F8FF7]">
-                  <th className="whitespace-nowrap px-3 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white">
-                    Item Ref
-                  </th>
-                  <th className="whitespace-nowrap px-3 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white">
-                    Product
-                  </th>
-                  <th className="whitespace-nowrap px-3 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white">
-                    SKU
-                  </th>
-                  <th className="whitespace-nowrap px-3 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-white">
-                    Qty
-                  </th>
-                  <th className="whitespace-nowrap px-3 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-white">
-                    Amount
-                  </th>
-                  <th className="whitespace-nowrap px-3 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white">
-                    Tracking No.
-                  </th>
-                  <th className="whitespace-nowrap px-3 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-white">
-                    Status
-                  </th>
-                  <th className="whitespace-nowrap px-3 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-white">
-                    Item Actions
-                  </th>
-                </tr>
-              </thead>
-
-              {showSkeletonRows ? (
-                <tbody>
-                  {[...Array(6)].map((_, i) => (
-                    <TableRowSkeleton key={`skeleton-${i}`} />
-                  ))}
-                </tbody>
-              ) : visibleGroups.length > 0 ? (
-                visibleGroups.map((group) => {
-                  const cancelState = getOrderCancelReturnState(group);
-                  const orderMenuId = `order:${group.id}`;
-                  const orderMenuHeight = 48;
-
-                  return (
-                    <tbody
-                      key={group.id}
-                      className="border-b-2 border-[#2D6FE8]/15"
-                    >
-                      {/* ORDER HEADER ROW */}
-                      <tr
-                        className={`${selectedOrderId === group.id
-                          ? "bg-[#DBEAFE]"
-                          : "bg-[#EAF3FF]"
-                          }`}
-                      >
-                        <td colSpan={8} className="px-3 py-3">
-                          <div className="flex flex-wrap items-center justify-between gap-3">
-                            <div className="flex min-w-0 flex-wrap items-center gap-3">
-                              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-[#2D6FE8] shadow-sm">
-                                <FiPackage size={16} />
-                              </div>
-                              <div className="min-w-0">
-                                <p className="text-sm font-bold text-[#111827]">
-                                  {group.id}
-                                </p>
-                                <p className="mt-0.5 text-[11px] text-[#4B5563]">
-                                  {group.customer} • {group.date} •{" "}
-                                  <span className="capitalize">
-                                    {group.orderType === "retail"
-                                      ? "Customer"
-                                      : group.orderType}
-                                  </span>{" "}
-                                  • {group.items.length} item
-                                  {group.items.length > 1 ? "s" : ""}
-                                </p>
-                              </div>
-                              <span
-                                className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-1 text-[10px] font-bold ${getStatusBadge(
-                                  group.orderStatus,
-                                )}`}
-                              >
-                                <span className="h-1.5 w-1.5 rounded-full bg-current" />
-                                {formatStatus(group.orderStatus)}
-                              </span>
-                              {renderCancelReturnPill(cancelState)}
-                            </div>
-
-                            <div className="flex items-center gap-3">
-                              <div className="text-right">
-                                <p className="text-[10px] font-semibold uppercase tracking-wide text-[#6B7280]">
-                                  Order Total
-                                </p>
-                                <p className="text-sm font-bold text-[#1E40AF]">
-                                  {group.total}
-                                </p>
-                              </div>
-
-                              <button
-                                type="button"
-                                onClick={() => handleViewOrder(group.id)}
-                                className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#2D6FE8]/20 bg-white text-[#2D6FE8] transition-all hover:border-transparent hover:bg-[#2D6FE8] hover:text-white hover:shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)]"
-                                title="View Order"
-                              >
-                                <FiEye size={14} />
-                              </button>
-
-                              {/* ORDER three-dot: Cancel/Return Allowed / Not Allowed */}
-                              <div className="action-menu-container relative">
-                                <button
-                                  type="button"
-                                  onClick={(event) =>
-                                    toggleMenu(
-                                      orderMenuId,
-                                      event.currentTarget,
-                                      orderMenuHeight,
-                                    )
-                                  }
-                                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#2D6FE8]/20 bg-white text-[#2D6FE8] transition-all hover:border-transparent hover:bg-[#2D6FE8] hover:text-white"
-                                  title="Order Actions"
-                                >
-                                  <FiMoreVertical size={14} />
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-                      </tr>
-
-                      {/* ITEM ROWS (nested inside the order) */}
-                      {group.items.map((item) => {
-                        const itemStatusBadge = getStatusBadge(
-                          item.delivery_status || item.status || "pending",
-                        );
-
-                        return (
-                          <tr
-                            key={`${group.id}-${item.id}`}
-                            className="border-t border-[#2D6FE8]/10 bg-white transition hover:bg-[#FAFBFF]"
-                          >
-                            <td className="px-3 py-3">
-                              <div className="flex items-center gap-2">
-                                <span className="h-6 w-0.5 rounded-full bg-[#2D6FE8]/30" />
-                                <span className="inline-flex whitespace-nowrap rounded-lg bg-[#EAF3FF] px-2 py-1 text-[10px] font-bold tracking-wide text-[#2D6FE8]">
-                                  {item.itemReferenceId || "N/A"}
-                                </span>
-                              </div>
-                            </td>
-
-                            <td className="px-3 py-3">
-                              <div className="flex items-center gap-2.5">
-                                {item.image ? (
-                                  <img
-                                    src={item.image}
-                                    alt={item.productName}
-                                    className="h-8 w-8 flex-shrink-0 rounded-lg border border-[#2D6FE8]/10 object-cover"
-                                  />
-                                ) : (
-                                  <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-[#EAF3FF] text-[#2D6FE8]">
-                                    <FiPackage size={13} />
-                                  </div>
-                                )}
-
-                                <div className="min-w-0 max-w-[240px]">
-                                  <p
-                                    title={item.productName}
-                                    className="break-words text-xs font-normal leading-4 text-[#111827]"
-                                  >
-                                    {item.productName
-                                      ?.trim()
-                                      .split(/\s+/)
-                                      .slice(0, 3)
-                                      .join(" ")}
-                                  </p>
-
-                                  {(item.categoryName || item.brandName) && (
-                                    <div className="mt-0.5 space-y-0.5 text-[10px] leading-4 text-[#4B5563]">
-                                      {item.categoryName && (
-                                        <p
-                                          title={item.categoryName}
-                                          className="break-words"
-                                        >
-                                          <span className="font-medium text-[#374151]">
-                                            Category:
-                                          </span>{" "}
-                                          {item.categoryName
-                                            .trim()
-                                            .split(/\s+/)
-                                            .slice(0, 3)
-                                            .join(" ")}
-                                        </p>
-                                      )}
-
-                                      {item.brandName && (
-                                        <p
-                                          title={item.brandName}
-                                          className="break-words"
-                                        >
-                                          <span className="font-medium text-[#374151]">
-                                            Brand:
-                                          </span>{" "}
-                                          {item.brandName
-                                            .trim()
-                                            .split(/\s+/)
-                                            .slice(0, 3)
-                                            .join(" ")}
-                                        </p>
-                                      )}
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            </td>
-
-                            <td className="px-3 py-3">
-                              <span className="inline-flex whitespace-nowrap rounded-lg bg-[#F4F8FD] px-2 py-1 text-[11px] font-bold tracking-wide text-[#111827]">
-                                {item.sku}
-                              </span>
-                            </td>
-                            <td className="px-3 py-3 text-center text-xs font-semibold text-[#111827]">
-                              {item.quantity}
-                            </td>
-                            <td className="whitespace-nowrap px-3 py-3 text-right text-xs font-bold text-[#111827]">
-                              {item.total}
-                            </td>
-                            <td className="px-3 py-3">
-                              {item.courier_tracking_id ? (
-                                <div className="space-y-1">
-                                  <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-[#EAF3FF] px-2 py-1 text-[10px] font-bold text-[#2D6FE8]">
-                                    <FiTruck size={11} />
-                                    {item.courier_tracking_id}
-                                  </span>
-                                  {item.indiaPost && (
-                                    <>
-                                      <p className="text-[10px] font-semibold text-[#4B5563]">
-                                        India Post ·{" "}
-                                        {indiaPostStatus(item.indiaPost)}
-                                      </p>
-                                      <p
-                                        className="max-w-[200px] truncate text-[10px] text-[#6B7280]"
-                                        title={
-                                          item.indiaPost.latest_event || ""
-                                        }
-                                      >
-                                        {item.indiaPost.latest_event ||
-                                          "Awaiting courier scan"}
-                                      </p>
-                                    </>
-                                  )}
-                                </div>
-                              ) : (
-                                <span className="text-xs text-[#6B7280]">
-                                  —
-                                </span>
-                              )}
-                            </td>
-                            <td className="px-3 py-3 text-center">
-                              <span
-                                className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-1 text-[10px] font-bold ${itemStatusBadge}`}
-                              >
-                                <span className="h-1.5 w-1.5 rounded-full bg-current" />
-                                {formatStatus(
-                                  item.delivery_status ||
-                                  item.status ||
-                                  "pending",
-                                )}
-                              </span>
-                            </td>
-
-                            <td className="px-3 py-3 text-center">
-                              {renderItemActionButtons(group, item)}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  );
-                })
-              ) : (
-                <tbody>
-                  <tr>
-                    <td colSpan={8} className="px-6 py-16 text-center">
-                      <div className="flex flex-col items-center">
-                        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
-                          <FiSearch size={24} />
-                        </div>
-                        <p className="mt-4 text-sm font-bold text-[#111827]">
-                          No orders found
-                        </p>
-                        <p className="mt-1 text-xs text-[#6B7280]">
-                          Try adjusting your filters or search criteria.
-                        </p>
-                      </div>
-                    </td>
-                  </tr>
-                </tbody>
-              )}
-            </table>
-          </div>
-
-          {/* MOBILE VIEW */}
-          <div className="block lg:hidden">
-            {showSkeletonRows ? (
-              [...Array(4)].map((_, i) => (
-                <MobileRowSkeleton key={`m-skeleton-${i}`} />
-              ))
-            ) : visibleGroups.length > 0 ? (
-              visibleGroups.map((group) => {
-                const cancelState = getOrderCancelReturnState(group);
-                const isTogglingOrder = togglingCancelReturn.has(
-                  `order-${group.id}`,
-                );
-
-                return (
-                  <div
-                    key={group.id}
-                    className={`border-b-2 border-[#2D6FE8]/15 ${selectedOrderId === group.id ? "bg-[#EAF3FF]" : "bg-white"
-                      }`}
-                  >
-                    {/* ORDER HEADER */}
-                    <div className="bg-[#EAF3FF] p-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="text-sm font-bold text-[#111827]">
-                            {group.id}
-                          </p>
-                          <p className="mt-0.5 text-[11px] text-[#4B5563]">
-                            {group.customer} • {group.date}
-                          </p>
-                          <p className="mt-0.5 text-[11px] text-[#4B5563]">
-                            <span className="capitalize">
-                              {group.orderType === "retail"
-                                ? "Customer"
-                                : group.orderType}
-                            </span>{" "}
-                            • {group.items.length} item
-                            {group.items.length > 1 ? "s" : ""} •{" "}
-                            <span className="font-bold text-[#1E40AF]">
-                              {group.total}
-                            </span>
-                          </p>
-                        </div>
-                        <span
-                          className={`inline-flex whitespace-nowrap rounded-full border px-2.5 py-1 text-[10px] font-bold ${getStatusBadge(
-                            group.orderStatus,
-                          )}`}
-                        >
-                          {formatStatus(group.orderStatus)}
-                        </span>
-                      </div>
-
-                      <div className="mt-2">
-                        {renderCancelReturnPill(cancelState)}
-                      </div>
-
-                      <div className="mt-3 flex flex-wrap items-center gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => handleViewOrder(group.id)}
-                          className="flex-1 rounded-lg border border-[#2D6FE8]/20 bg-white px-3 py-2 text-[11px] font-bold text-[#2D6FE8]"
-                        >
-                          View Order
-                        </button>
-
-                        {cancelState === "closed" ? (
-                          <span className="flex-1 cursor-not-allowed rounded-lg bg-[#F4F8FD] px-3 py-2 text-center text-[11px] font-bold text-[#9CA3AF] opacity-70">
-                            Closed
-                          </span>
-                        ) : canToggleCancelReturn ? (
-                          <button
-                            type="button"
-                            onClick={() => handleToggleOrderCancelReturn(group)}
-                            disabled={isTogglingOrder}
-                            className={`flex-1 rounded-lg px-3 py-2 text-[11px] font-bold transition disabled:opacity-60 ${cancelState === "allowed"
-                              ? "bg-white text-[#2D6FE8]"
-                              : "bg-[#F4F8FD] text-[#6B7280]"
-                              }`}
-                          >
-                            {isTogglingOrder
-                              ? "Saving..."
-                              : cancelState === "allowed"
-                                ? "Return: Allowed"
-                                : cancelState === "partial"
-                                  ? "Return: Partial"
-                                  : "Return: Not Allowed"}
-                          </button>
-                        ) : null}
-                      </div>
-                    </div>
-
-                    {/* ITEMS NESTED */}
-                    <div className="space-y-3 p-3">
-                      {group.items.map((item) => {
-                        const isDispatchable =
-                          canItemDispatch(item) && canDispatch;
-                        const isShipable = canItemShip(item) && canShip;
-                        const isDeliverable =
-                          canItemDeliver(item) && canDeliver;
-                        const isUndeliverable =
-                          canItemMarkUndelivered(item) && canMarkUndelivered;
-                        const isDelivered = isFullyDelivered(item);
-                        const isMarking = markingUndelivered.has(
-                          `${group.id}-${item.id}`,
-                        );
-                        const hasInvoice = Boolean(item.invoiceNumber);
-
-                        return (
-                          <div
-                            key={`${group.id}-${item.id}`}
-                            className="rounded-xl border border-[#2D6FE8]/10 bg-[#FAFBFF] p-3"
-                          >
-                            <div className="flex items-start justify-between gap-2">
-                              <span className="inline-flex rounded-lg bg-[#F4F8FD] px-2 py-0.5 text-[11px] font-bold text-[#111827]">
-                                {item.itemReferenceId || "N/A"}
-                              </span>
-                              <span
-                                className={`inline-flex whitespace-nowrap rounded-full border px-2.5 py-1 text-[10px] font-bold ${getStatusBadge(
-                                  item.delivery_status ||
-                                  item.status ||
-                                  "pending",
-                                )}`}
-                              >
-                                {formatStatus(
-                                  item.delivery_status ||
-                                  item.status ||
-                                  "pending",
-                                )}
-                              </span>
-                            </div>
-
-                            <div className="mt-2 flex items-center gap-2.5">
-                              {item.image ? (
-                                <img
-                                  src={item.image}
-                                  alt={item.productName}
-                                  className="h-10 w-10 rounded-lg border border-[#2D6FE8]/10 object-cover flex-shrink-0"
-                                />
-                              ) : (
-                                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#EAF3FF] text-[#2D6FE8] flex-shrink-0">
-                                  <FiPackage size={14} />
-                                </div>
-                              )}
-                              <div className="min-w-0 flex-1">
-                                <p className="break-words text-xs font-normal leading-4 text-[#111827]">
-                                  {item.productName}
-                                </p>
-                                {(item.categoryName || item.brandName) && (
-                                  <div className="mt-0.5 space-y-0.5 text-[10px] leading-3.5 text-[#4B5563]">
-                                    {item.categoryName && (
-                                      <p className="break-words">
-                                        <span className="font-medium text-[#374151]">
-                                          Category:
-                                        </span>{" "}
-                                        {item.categoryName}
-                                      </p>
-                                    )}
-                                    {item.brandName && (
-                                      <p className="break-words">
-                                        <span className="font-medium text-[#374151]">
-                                          Brand:
-                                        </span>{" "}
-                                        {item.brandName}
-                                      </p>
-                                    )}
-                                  </div>
-                                )}
-                                <p className="mt-1 break-words text-[11px] text-[#4B5563]">
-                                  SKU: {item.sku} • Qty: {item.quantity}
-                                </p>
-                              </div>
-                              <span className="ml-auto shrink-0 text-xs font-bold text-[#2D6FE8]">
-                                {item.total}
-                              </span>
-                            </div>
-
-                            {item.indiaPost && item.courier_tracking_id && (
-                              <div className="mt-2 rounded-xl border border-[#2D6FE8]/15 bg-[#EAF3FF] p-2.5 text-[11px]">
-                                <div className="flex flex-wrap items-center justify-between gap-2">
-                                  <span className="font-bold text-[#2D6FE8]">
-                                    India Post: {item.indiaPost.awb}
-                                  </span>
-                                  <span className="font-semibold text-[#111827]">
-                                    {indiaPostStatus(item.indiaPost)}
-                                  </span>
-                                </div>
-                                <p className="mt-1 text-[#4B5563]">
-                                  {item.indiaPost.latest_event ||
-                                    "Awaiting courier scan"}
-                                </p>
-                              </div>
-                            )}
-
-                            {!item.indiaPost &&
-                              item.courier_tracking_id && (
-                                <div className="mt-2 text-[11px] font-medium text-[#2D6FE8]">
-                                  Tracking No.: {item.courier_tracking_id}
-                                </div>
-                              )}
-                            <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                              {isDispatchable && (
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    openDispatchChoicePopup(group, item)
-                                  }
-                                  className="flex-1 rounded-lg bg-[#2D6FE8] px-3 py-2 text-[11px] font-bold text-white"
-                                >
-                                  Dispatch
-                                </button>
-                              )}
-                              {isShipable && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setSelectedOrderForShip(group);
-                                    setSelectedItemsForShip([item]);
-                                    setShowShipPopup(true);
-                                  }}
-                                  className="flex-1 rounded-lg bg-[#2D6FE8] px-3 py-2 text-[11px] font-bold text-white"
-                                >
-                                  Ship
-                                </button>
-                              )}
-                              {isDeliverable && !isDelivered && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setSelectedOrderForDeliver(group);
-                                    setSelectedItemsForDeliver([item]);
-                                    setShowDeliverPopup(true);
-                                  }}
-                                  className="flex-1 rounded-lg bg-[#2D6FE8] px-3 py-2 text-[11px] font-bold text-white"
-                                >
-                                  Delivered
-                                </button>
-                              )}
-                              {isUndeliverable && (
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    handleMarkUndelivered(group, item)
-                                  }
-                                  disabled={isMarking}
-                                  className="flex-1 rounded-lg bg-[#C23B32] px-3 py-2 text-[11px] font-bold text-white disabled:opacity-60"
-                                >
-                                  {isMarking ? "Saving..." : "Undelivered"}
-                                </button>
-                              )}
-                              {hasInvoice &&
-                                group.orderId &&
-                                canViewInvoice && (
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      handleOpenInvoicePdf(
-                                        group.orderId!,
-                                        item.lineId || parseInt(item.id),
-                                      )
-                                    }
-                                    className="flex-1 rounded-lg bg-[#EAF3FF] px-3 py-2 text-[11px] font-bold text-[#2D6FE8]"
-                                  >
-                                    Invoice
-                                  </button>
-                                )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })
-            ) : (
-              <div className="flex flex-col items-center px-6 py-16 text-center">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
-                  <FiSearch size={24} />
-                </div>
-                <p className="mt-4 text-sm font-bold text-[#111827]">
-                  No orders found
-                </p>
-                <p className="mt-1 text-xs text-[#6B7280]">
-                  Try adjusting your filters.
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* PAGINATION */}
-          {!showSkeletonRows && filteredGroups.length > 0 && (
-            <div className="border-t border-[#2D6FE8]/10 bg-[#FAFBFF] px-5 py-3">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-xs text-[#6B7280]">
-                  Showing{" "}
-                  <span className="font-bold text-[#111827]">
-                    {(currentPage - 1) * itemsPerPage + 1}
-                  </span>{" "}
-                  to{" "}
-                  <span className="font-bold text-[#111827]">
-                    {Math.min(
-                      currentPage * itemsPerPage,
-                      filteredGroups.length,
-                    )}
-                  </span>{" "}
-                  of{" "}
-                  <span className="font-bold text-[#111827]">
-                    {filteredGroups.length}
-                  </span>{" "}
-                  orders{" "}
-                  <span className="text-[#9CA3AF]">
-                    ({filteredItemCount} items)
-                  </span>
-                </p>
-
-                <div className="flex items-center justify-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => changePage(currentPage - 1)}
-                    disabled={currentPage === 1}
-                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#2D6FE8]/15 bg-white text-[#2D6FE8] transition hover:border-[#2D6FE8]/30 hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-30"
-                  >
-                    <FiChevronLeft size={17} />
-                  </button>
-                  {[...Array(Math.min(totalPages, 3))].map((_, index) => {
-                    const page = index + 1;
-                    return (
-                      <button
-                        key={page}
-                        type="button"
-                        onClick={() => changePage(page)}
-                        className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition-all ${currentPage === page
-                          ? "bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] text-white shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)]"
-                          : "text-[#111827] hover:bg-[#F4F8FD] hover:text-[#2D6FE8]"
-                          }`}
-                      >
-                        {page}
-                      </button>
-                    );
-                  })}
-                  {totalPages > 3 && (
-                    <>
-                      <span className="px-1 text-xs text-[#6B7280]">...</span>
-                      <button
-                        type="button"
-                        onClick={() => changePage(totalPages)}
-                        className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition-all ${currentPage === totalPages
-                          ? "bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] text-white"
-                          : "text-[#111827] hover:bg-[#F4F8FD] hover:text-[#2D6FE8]"
-                          }`}
-                      >
-                        {totalPages}
-                      </button>
-                    </>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => changePage(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#2D6FE8]/15 bg-white text-[#2D6FE8] transition hover:border-[#2D6FE8]/30 hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-30"
-                  >
-                    <FiChevronRight size={17} />
-                  </button>
-                </div>
-              </div>
+          {/* thin refresh bar (dispatch / ship / deliver / search) */}
+          {isRefreshing && (
+            <div className="absolute inset-x-4 bottom-0 h-0.5 overflow-hidden rounded-full bg-[#DCE6F2]">
+              <div className="h-full w-1/3 animate-pulse rounded-full bg-[#2D6FE8]" />
             </div>
           )}
         </div>
+
+        {/* LIST TOOLBAR: counts + expand / collapse all */}
+        {!showSkeletonRows && filteredGroups.length > 0 && (
+          <div className="flex flex-wrap items-center justify-between gap-3 px-1">
+            <p className="text-xs text-[#6B7280]">
+              <span className="font-bold text-[#111827]">
+                {filteredGroups.length}
+              </span>{" "}
+              orders{" "}
+              <span className="text-[#9CA3AF]">
+                • {filteredItemCount} items
+              </span>
+              {activeFilterLabel !== "All Orders" && (
+                <span className="ml-2 rounded-full bg-[#EAF3FF] px-2 py-0.5 text-[10px] font-bold text-[#2D6FE8]">
+                  {activeFilterLabel}
+                </span>
+              )}
+            </p>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={expandAllOrders}
+                disabled={allVisibleExpanded}
+                className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-[#2D6FE8]/20 bg-white px-3 text-xs font-bold text-[#2D6FE8] transition hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <FiChevronDown size={14} />
+                Expand all
+              </button>
+              <button
+                type="button"
+                onClick={collapseAllOrders}
+                disabled={!anyVisibleExpanded}
+                className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-[#2D6FE8]/20 bg-white px-3 text-xs font-bold text-[#2D6FE8] transition hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <FiChevronUp size={14} />
+                Collapse all
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ORDER LIST — each order is an expandable card */}
+        <div className="space-y-3">
+          {showSkeletonRows ? (
+            <>
+              <div className="hidden space-y-3 lg:block">
+                {[...Array(6)].map((_, i) => (
+                  <TableRowSkeleton key={`skeleton-${i}`} />
+                ))}
+              </div>
+              <div className="block overflow-hidden rounded-2xl border border-[#DCE6F2] lg:hidden">
+                {[...Array(4)].map((_, i) => (
+                  <MobileRowSkeleton key={`m-skeleton-${i}`} />
+                ))}
+              </div>
+            </>
+          ) : visibleGroups.length > 0 ? (
+            visibleGroups.map((group) => renderOrderCard(group))
+          ) : (
+            <div className="flex flex-col items-center rounded-2xl border border-[#DCE6F2] bg-white px-6 py-16 text-center shadow-sm">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
+                <FiSearch size={24} />
+              </div>
+              <p className="mt-4 text-sm font-bold text-[#111827]">
+                No orders found
+              </p>
+              <p className="mt-1 text-xs text-[#6B7280]">
+                Try adjusting your filters or search criteria.
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* PAGINATION */}
+        {!showSkeletonRows && filteredGroups.length > 0 && (
+          <div className="rounded-2xl border border-[#DCE6F2] bg-white px-5 py-3 shadow-sm">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-xs text-[#6B7280]">
+                Showing{" "}
+                <span className="font-bold text-[#111827]">
+                  {(currentPage - 1) * itemsPerPage + 1}
+                </span>{" "}
+                to{" "}
+                <span className="font-bold text-[#111827]">
+                  {Math.min(currentPage * itemsPerPage, filteredGroups.length)}
+                </span>{" "}
+                of{" "}
+                <span className="font-bold text-[#111827]">
+                  {filteredGroups.length}
+                </span>{" "}
+                orders{" "}
+                <span className="text-[#9CA3AF]">
+                  ({filteredItemCount} items)
+                </span>
+              </p>
+
+              <div className="flex items-center justify-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => changePage(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#2D6FE8]/15 bg-white text-[#2D6FE8] transition hover:border-[#2D6FE8]/30 hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-30"
+                >
+                  <FiChevronLeft size={17} />
+                </button>
+
+                {pageNumbers.map((p) =>
+                  typeof p === "number" ? (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => changePage(p)}
+                      className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition-all ${
+                        currentPage === p
+                          ? "bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] text-white shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)]"
+                          : "text-[#111827] hover:bg-[#F4F8FD] hover:text-[#2D6FE8]"
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  ) : (
+                    <span key={p} className="px-1 text-xs text-[#6B7280]">
+                      ...
+                    </span>
+                  ),
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => changePage(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#2D6FE8]/15 bg-white text-[#2D6FE8] transition hover:border-[#2D6FE8]/30 hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-30"
+                >
+                  <FiChevronRight size={17} />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* three-dot floating menu (order-level or item-level) */}

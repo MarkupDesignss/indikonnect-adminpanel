@@ -37,10 +37,8 @@ import returnApi, {
 } from "../../../api/endpoints/return";
 
 import { FaRupeeSign } from "react-icons/fa";
-
 import { usePermissions } from "../../permissions/usePermissions";
 
-// ✅ NEW: logo API (same pattern as Orders.tsx / BrandsManagement.tsx)
 import logoApi from "../../../api/endpoints/logoApi";
 import PermissionLoadingState from "@/components/common/PermissionLoadingState";
 
@@ -234,6 +232,46 @@ const getOrderReference = (record: any): string | null => {
 /** ✅ NEW: Display-safe order reference ("—" if missing). */
 const getOrderReferenceDisplay = (record: any): string => {
   return getOrderReference(record) ?? "—";
+};
+
+/**
+ * ✅ NEW: Delivered At resolver.
+ *
+ * Problem: API me `order.delivered_at` kai baar null aata hai, jabki
+ * delivered date `order_lines_timeline[].timeline.delivered_at` me hoti hai.
+ *
+ * Priority:
+ *   1) order.delivered_at
+ *   2) record.delivered_at
+ *   3) order_lines_timeline[].timeline.delivered_at  (sabse latest wali)
+ *   4) null  -> UI me "Not Delivered"
+ */
+const getDeliveredAt = (record: any): string | null => {
+  if (!record) return null;
+
+  // 1) Order level
+  const orderLevel = record?.order?.delivered_at ?? record?.delivered_at ?? null;
+
+  if (orderLevel) return String(orderLevel);
+
+  // 2) Line timeline level
+  const lines: any[] = Array.isArray(record?.order_lines_timeline)
+    ? record.order_lines_timeline
+    : [];
+
+  const deliveredDates: string[] = lines
+    .map((line) => line?.timeline?.delivered_at)
+    .filter((value): value is string => Boolean(value));
+
+  if (deliveredDates.length === 0) return null;
+
+  // Latest delivered date (multiple lines ho to last delivery dikhao)
+  return deliveredDates.reduce((latest, current) => {
+    const latestTime = new Date(latest.replace(" ", "T")).getTime();
+    const currentTime = new Date(current.replace(" ", "T")).getTime();
+
+    return currentTime > latestTime ? current : latest;
+  });
 };
 
 /**
@@ -457,7 +495,7 @@ interface TimelineEvent {
   icon: React.ReactNode;
 }
 
-// ✅ UPDATED: Accepts accountType to dynamically replace "customer"
+// UPDATED: Accepts accountType to dynamically replace "customer"
 const buildTimelineEvents = (
   timeline: Record<string, any> | undefined,
   accountType?: string | null,
@@ -1797,6 +1835,9 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
   const courier = rawDetail.courier || null;
   const returnMethodLabel = getReturnMethodLabel(returnMethod);
 
+  // ✅ Delivered At (order.delivered_at -> fallback: order_lines_timeline)
+  const deliveredAt = getDeliveredAt(rawDetail);
+
   // ✅ Refunded amount
   const actualRefundedAmount = getRefundedAmount(rawDetail);
   const returnAmount = getReturnAmount(rawDetail);
@@ -2110,11 +2151,12 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                   </div>
                 )}
 
+                {/* ✅ Delivered At — order.delivered_at, fallback: line timeline */}
                 <div className="flex justify-between gap-4">
                   <span className="text-xs text-[#6B7280]">Delivered At</span>
 
                   <span className="text-right text-xs font-semibold text-[#4B5563]">
-                    {formatDate(detail.order?.delivered_at)}
+                    {deliveredAt ? formatDate(deliveredAt) : "Not Delivered"}
                   </span>
                 </div>
               </div>
