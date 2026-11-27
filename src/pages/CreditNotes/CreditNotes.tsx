@@ -244,32 +244,32 @@ const normalizeCreditNote = (raw: any): CreditNote => {
     refund: Object.values(refund).some((v) => v != null) ? refund : null,
     items:
       raw.product_name != null ||
-      raw.item_total != null ||
-      raw.item_taxable_value != null
+        raw.item_total != null ||
+        raw.item_taxable_value != null
         ? [
-            {
-              order_line_id: raw.order_line_id,
-              product_id: raw.product_id,
-              product_name: raw.product_name,
-              product_slug: raw.product_slug,
-              hsn_code: raw.hsn_code,
-              product_code: raw.product_code,
-              quantity: raw.quantity,
-              unit_price: raw.unit_price,
-              taxable_value: raw.item_taxable_value,
-              gst_rate: raw.gst_rate,
-              cgst: raw.item_cgst ?? raw.gst_breakdown?.cgst,
-              sgst: raw.item_sgst ?? raw.gst_breakdown?.sgst,
-              igst: raw.item_igst ?? raw.gst_breakdown?.igst,
-              product_gst: raw.item_product_gst,
-              shipping_gst: raw.item_shipping_gst,
-              total_gst: raw.item_total_gst,
-              shipping_charge_line: raw.shipping_charge_line,
-              service_charge: raw.service_charge,
-              line_total: raw.item_total,
-              product_line_total: raw.line_total,
-            },
-          ]
+          {
+            order_line_id: raw.order_line_id,
+            product_id: raw.product_id,
+            product_name: raw.product_name,
+            product_slug: raw.product_slug,
+            hsn_code: raw.hsn_code,
+            product_code: raw.product_code,
+            quantity: raw.quantity,
+            unit_price: raw.unit_price,
+            taxable_value: raw.item_taxable_value,
+            gst_rate: raw.gst_rate,
+            cgst: raw.item_cgst ?? raw.gst_breakdown?.cgst,
+            sgst: raw.item_sgst ?? raw.gst_breakdown?.sgst,
+            igst: raw.item_igst ?? raw.gst_breakdown?.igst,
+            product_gst: raw.item_product_gst,
+            shipping_gst: raw.item_shipping_gst,
+            total_gst: raw.item_total_gst,
+            shipping_charge_line: raw.shipping_charge_line,
+            service_charge: raw.service_charge,
+            line_total: raw.item_total,
+            product_line_total: raw.line_total,
+          },
+        ]
         : Array.isArray(raw.items)
           ? raw.items
           : [],
@@ -306,10 +306,10 @@ const creditItemKey = (note: any) =>
   JSON.stringify([
     creditNoteKey(note),
     note.order_line_id ??
-      note.items?.[0]?.order_line_id ??
-      note.s_no ??
-      note._itemIndex ??
-      0,
+    note.items?.[0]?.order_line_id ??
+    note.s_no ??
+    note._itemIndex ??
+    0,
     note._reportRowIndex ?? 0,
   ]);
 
@@ -346,7 +346,7 @@ const loadCreditNoteItemRows = async (
       }
     }
   }
-  return all;
+  return allocateItemRefunds(all);
 };
 // Detect a truncated upstream response using the note's declared item_count.
 const countMissingCreditItems = (notes: CreditNote[]): number => {
@@ -399,6 +399,87 @@ const itemInvoiceValue = (note: any): number | null => {
     numeric(item.line_total) ?? creditSum([itemTaxable(note), itemTax(note)])
   );
 };
+// Display-only allocation of the recorded refund, in integer paise.
+// The original refund amount and credit note amount are never overwritten.
+// Allocate across the full loaded refund group, never across filtered rows.
+type RefundAllocation = {
+  _itemRefundAmount: number | null;
+  _itemRefundBasis: "recorded" | "allocated" | "unavailable";
+};
+const itemRefundAmount = (note: any): number | null =>
+  numeric(note._itemRefundAmount);
+const itemRefundBasis = (note: any): string =>
+  note._itemRefundBasis === "recorded"
+    ? "Recorded single-item refund"
+    : note._itemRefundBasis === "allocated"
+      ? "Allocated by invoice value (estimate)"
+      : "Item refund unavailable";
+
+const allocateItemRefunds = (notes: CreditNote[]): CreditNote[] => {
+  const result = notes.map((note) => ({
+    ...note,
+    _itemRefundAmount: null,
+    _itemRefundBasis: "unavailable",
+  }) as CreditNote & RefundAllocation);
+  const groups = new Map<string, number[]>();
+  result.forEach((note, index) => {
+    const key = creditRefundKey(note);
+    if (key === "note:") return;
+    const group = groups.get(key) ?? [];
+    group.push(index);
+    groups.set(key, group);
+  });
+  for (const indexes of groups.values()) {
+    const rows = indexes.map((index) => result[index]);
+    // Conflicting recorded amounts or incomplete known item groups are unsafe.
+    const amounts = rows.map(creditRefundAmount);
+    const known = amounts.filter((v): v is number => v !== null);
+    if (!known.length || known.some((v) => v !== known[0]) || known[0] < 0)
+      continue;
+    if (countMissingCreditItems(rows) > 0) continue;
+    const lines = rows.map((row: any) => {
+      const id = row.order_line_id ?? row.items?.[0]?.order_line_id;
+      return id == null ? null : `${row.order_id ?? ""}:${id}`;
+    });
+    const knownLines = lines.filter((line): line is string => line !== null);
+    if (new Set(knownLines).size !== knownLines.length) continue;
+    const totalPaise = Math.round(known[0] * 100);
+    if (!Number.isSafeInteger(totalPaise)) continue;
+    if (rows.length === 1) {
+      if (!rows[0].items?.length) continue;
+      rows[0]._itemRefundAmount = totalPaise / 100;
+      rows[0]._itemRefundBasis = "recorded";
+      continue;
+    }
+    const invoiceValues = rows.map(itemInvoiceValue);
+    if (invoiceValues.some((v) => v === null || v < 0)) continue;
+    const weights = invoiceValues.map((v) => Math.round((v ?? 0) * 100));
+    const weightTotal = weights.reduce((sum, weight) => sum + weight, 0);
+    if (!Number.isSafeInteger(weightTotal) || weightTotal <= 0) continue;
+    // Largest-remainder method: rounding never changes the refund total.
+    // BigInt avoids floating-point errors when multiplying monetary values.
+    const denominator = BigInt(weightTotal);
+    const shares = weights.map((weight, index) => {
+      const numerator = BigInt(totalPaise) * BigInt(weight);
+      return {
+        index,
+        paise: Number(numerator / denominator),
+        remainder: numerator % denominator,
+      };
+    });
+    const remaining = totalPaise - shares.reduce((sum, x) => sum + x.paise, 0);
+    const ranked = [...shares].sort((a, b) =>
+      a.remainder === b.remainder ? a.index - b.index : a.remainder > b.remainder ? -1 : 1,
+    );
+    for (let i = 0; i < remaining; i++) ranked[i].paise += 1;
+    shares.forEach(({ index, paise }) => {
+      rows[index]._itemRefundAmount = paise / 100;
+      rows[index]._itemRefundBasis = "allocated";
+    });
+  }
+  return result;
+};
+
 const gstRegistration = (value: unknown): "URP" | "Registered" | "" => {
   const v = String(value ?? "")
     .trim()
@@ -452,10 +533,10 @@ const matchesCreditNoteFilters = (
     note?.buyer_address,
     ...(Array.isArray(note?.items)
       ? note.items.flatMap((item: any) => [
-          item.product_name,
-          item.product_code,
-          item.hsn_code,
-        ])
+        item.product_name,
+        item.product_code,
+        item.hsn_code,
+      ])
       : []),
     String(note?.id ?? ""),
     String(note?.order_id ?? ""),
@@ -498,13 +579,13 @@ const reconciliation = (note: any) => {
   const deductions =
     numeric(b?.deductions_total) ??
     (Array.isArray(b?.deductions) &&
-    b.deductions.every((d: any) => numeric(d.amount) !== null)
+      b.deductions.every((d: any) => numeric(d.amount) !== null)
       ? round2(
-          b.deductions.reduce(
-            (sum: number, d: any) => sum + Number(d.amount),
-            0,
-          ),
-        )
+        b.deductions.reduce(
+          (sum: number, d: any) => sum + Number(d.amount),
+          0,
+        ),
+      )
       : null);
   const expected =
     gross !== null && deductions !== null ? round2(gross - deductions) : null;
@@ -532,6 +613,8 @@ const CREDIT_EXPORT_HEADERS = [
   "IGST",
   "Total GST",
   "Invoice Value",
+  "Item Refund Amount (allocated)",
+  "Item Refund Basis",
   "Refund Amount (whole refund)",
   "Credit Note Amount (whole note)",
   "Product Name",
@@ -655,6 +738,8 @@ const buildCreditExportRows = (notes: CreditNote[]): CreditExportRow[] => {
       numeric(item.igst),
       itemTax(note),
       itemInvoiceValue(note),
+      itemRefundAmount(note),
+      itemRefundBasis(note),
       refundCell,
       creditCell,
       String(item.product_name ?? ""),
@@ -970,8 +1055,14 @@ const FIELD_DEFS: FieldDef[] = [
     read: (n) => n.order?.[key],
   })),
   {
+    key: "itemRefundAmount",
+    label: "Item refund amount (allocated)",
+    kind: "number",
+    read: itemRefundAmount,
+  },
+  {
     key: "refund.amount",
-    label: "Actual refund",
+    label: "Actual refund (whole refund)",
     kind: "number",
     read: creditRefundAmount,
   },
@@ -1488,10 +1579,21 @@ const CreditNoteViewModal: React.FC<CreditNoteViewModalProps> = ({
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
-                    {"Refund Amount (whole note)"}
+                    {"Item Refund Amount"}
                   </p>
                   <p className="mt-1 text-sm font-bold text-[#2D6FE8]">
-                    {formatAmount(refund.amount)}
+                    {formatAmount(itemRefundAmount(note))}
+                  </p>
+                  <p className="mt-1 text-[10px] text-slate-500">
+                    {itemRefundBasis(note)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
+                    {"Actual Refund (whole refund)"}
+                  </p>
+                  <p className="mt-1 text-sm font-semibold text-[#111827]">
+                    {formatAmount(creditRefundAmount(note))}
                   </p>
                 </div>
                 <div>
@@ -1911,8 +2013,8 @@ const CreditNotes: React.FC = () => {
       } catch (error: any) {
         toast.error(
           error?.response?.data?.message ||
-            error?.message ||
-            "Unable to fetch credit notes.",
+          error?.message ||
+          "Unable to fetch credit notes.",
         );
       } finally {
         setLoading(false);
@@ -1989,15 +2091,10 @@ const CreditNotes: React.FC = () => {
       gst: creditSum(matchingNotes.map(itemTax)),
       invoice: creditSum(matchingNotes.map(itemInvoiceValue)),
       refunded: (() => {
-        const refunds = new Map<string, number | null>();
-        for (const n of matchingNotes) {
-          const note: any = n;
-          if (String(note.refund?.status ?? "").toLowerCase() !== "completed")
-            continue;
-          const key = creditRefundKey(note);
-          refunds.set(key, refunds.get(key) ?? creditRefundAmount(note));
-        }
-        return refunds.size ? creditSum([...refunds.values()]) : 0;
+        const completed = matchingNotes.filter(
+          (note) => String(note.refund?.status ?? "").toLowerCase() === "completed",
+        );
+        return completed.length ? creditSum(completed.map(itemRefundAmount)) : 0;
       })(),
       flagged: notes.filter((n) => {
         const r = reconciliation(n);
@@ -2043,7 +2140,7 @@ const CreditNotes: React.FC = () => {
 
       const compactKeys = [...CREDIT_EXPORT_HEADERS];
       const compactRows = buildCreditExportRows(exportNotes);
-      // Use item-level amounts. The issued credit amount alone is note-level.
+      // Keep allocated item refunds and recorded whole-refund/note amounts separate.
       const fullKeys = [
         ...compactKeys,
         "S.No.",
@@ -2169,6 +2266,7 @@ const CreditNotes: React.FC = () => {
           "Item Shipping GST",
           "Item Service Charge",
           "Total GST",
+          "Item Refund Amount (allocated)",
         ]);
         const addSheet = (
           name: string,
@@ -2220,6 +2318,7 @@ const CreditNotes: React.FC = () => {
             const isDate = j === 1 || j === 3;
             const isNumber =
               key === "Rate" ||
+              key === "Item Refund Amount (allocated)" ||
               key === "Refund Amount (whole refund)" ||
               key === "Credit Note Amount (whole note)" ||
               values.some((v) => typeof v === "number") ||
@@ -2306,7 +2405,7 @@ const CreditNotes: React.FC = () => {
                   max,
                   Math.ceil(
                     String(creditExportCellText(v) ?? "").length /
-                      Math.max(6, (sheet.getColumn(j + 1).width ?? 20) - 3),
+                    Math.max(6, (sheet.getColumn(j + 1).width ?? 20) - 3),
                   ),
                 ),
               1,
@@ -2358,8 +2457,8 @@ const CreditNotes: React.FC = () => {
       console.error("Download credit notes CSV error:", error);
       toast.error(
         error?.response?.data?.message ||
-          error?.message ||
-          "Unable to download credit notes report.",
+        error?.message ||
+        "Unable to download credit notes report.",
       );
     } finally {
       setExportingCsv(false);
@@ -2617,12 +2716,12 @@ const CreditNotes: React.FC = () => {
         { label: "GSTIN", value: note.buyer_gstin },
         ...(note.buyer_address
           ? [
-              {
-                label: "Address",
-                value: note.buyer_address,
-                full: true,
-              } as KVCell,
-            ]
+            {
+              label: "Address",
+              value: note.buyer_address,
+              full: true,
+            } as KVCell,
+          ]
           : []),
       ]);
 
@@ -2657,16 +2756,18 @@ const CreditNotes: React.FC = () => {
 
       // 3. REFUND DETAILS
       if (refund) {
-        sectionTitle("Refund Details (whole note)");
+        sectionTitle("Refund Details");
         drawKVTable([
           { label: "Refund ID", value: refund.id ?? note.refund_id },
           { label: "Status", value: capitalize(refund.status) },
           {
-            label: "Refund Amount",
-            value: formatAmountPdf(refund.amount),
+            label: "Item Refund Amount (allocated)",
+            value: formatAmountPdf(itemRefundAmount(note)),
             bold: true,
             color: C.blue,
           },
+          { label: "Item Refund Basis", value: itemRefundBasis(note) },
+          { label: "Actual Refund (whole refund)", value: formatAmountPdf(creditRefundAmount(note)) },
           { label: "Method", value: capitalize(refund.refund_method) },
           { label: "Completed At", value: formatDateTime(refund.completed_at) },
           { label: "Gateway Ref", value: refund.gateway_reference },
@@ -2753,7 +2854,7 @@ const CreditNotes: React.FC = () => {
         ["SGST", formatAmountPdf(numeric(itemOf(note).sgst))],
         ["IGST", formatAmountPdf(numeric(itemOf(note).igst))],
         ["Total GST", formatAmountPdf(itemTax(note))],
-        ["Credit Note Amount", formatAmountPdf(note.amount)],
+        ["Credit Note Amount (whole note)", formatAmountPdf(note.amount)],
       ];
       ensureSpace(taxRows.length * 8 + 12);
       sectionTitle("Item GST Breakdown");
@@ -3015,7 +3116,7 @@ const CreditNotes: React.FC = () => {
               ["Item Invoice Value", formatAmount(totals.invoice)],
               ["Item GST Amount", formatAmount(totals.gst)],
               [
-                "Completed refunds (whole notes)",
+                "Completed item refunds (allocated)",
                 formatAmount(totals.refunded),
               ],
             ].map(([label, value]) => (
@@ -3169,17 +3270,17 @@ const CreditNotes: React.FC = () => {
                   ? [["eq", "Is exactly"]]
                   : field.kind === "text"
                     ? [
-                        ["eq", "Is exactly"],
-                        ["contains", "Contains"],
-                        ["empty", "Is missing"],
-                      ]
+                      ["eq", "Is exactly"],
+                      ["contains", "Contains"],
+                      ["empty", "Is missing"],
+                    ]
                     : [
-                        ["eq", "Equals"],
-                        ["gte", "At least / on or after"],
-                        ["lte", "At most / on or before"],
-                        ["between", "Between"],
-                        ["empty", "Is missing"],
-                      ];
+                      ["eq", "Equals"],
+                      ["gte", "At least / on or after"],
+                      ["lte", "At most / on or before"],
+                      ["between", "Between"],
+                      ["empty", "Is missing"],
+                    ];
                 const inputClass =
                   "min-w-0 w-full rounded-lg border border-[#DCE6F2] bg-white px-3 py-2 text-sm text-slate-800";
                 return (
@@ -3246,11 +3347,11 @@ const CreditNotes: React.FC = () => {
                             {(rule.field === "gstType"
                               ? ["URP", "Registered"]
                               : [
-                                  "Credit Note Unregistered",
-                                  "Credit Note Registered",
-                                  "Other Credit Notes",
-                                  "Classification unavailable",
-                                ]
+                                "Credit Note Unregistered",
+                                "Credit Note Registered",
+                                "Other Credit Notes",
+                                "Classification unavailable",
+                              ]
                             ).map((v) => (
                               <option key={v} value={v}>
                                 {v}
@@ -3305,9 +3406,10 @@ const CreditNotes: React.FC = () => {
             </div>
             {/* TABLE */}
             <p className="px-4 py-2 text-xs text-slate-500">
-              Refund and credit note amounts are whole-record values, not item
-              amounts. Missing refund amounts are not estimated. Exports record
-              each amount once.
+              Item refunds are allocated from the recorded refund in proportion to
+              invoice value before filtering. Allocated amounts are estimates, not
+              gateway-confirmed item refunds. Exports also preserve recorded whole
+              refund and credit note amounts once per record.
             </p>
             <p className="px-4 py-2 text-[10px] font-medium text-[#6B7280] sm:hidden">
               {"Swipe horizontally to view all table columns"}
@@ -3326,7 +3428,7 @@ const CreditNotes: React.FC = () => {
                       ["Issued", "left"],
                       ["Reason", "left"],
                       ["Item Invoice Value", "right"],
-                      ["Refund Amount", "right"],
+                      ["Item Refund Amount", "right"],
                       ["Actions", "center"],
                     ].map(([label, align]) => (
                       <th
@@ -3340,7 +3442,7 @@ const CreditNotes: React.FC = () => {
                 </thead>
                 <tbody>
                   {initialCreditNotesLoading ||
-                  (loading && creditNotes.length === 0) ? (
+                    (loading && creditNotes.length === 0) ? (
                     <tr>
                       <td colSpan={11} className="px-5 py-16 text-center">
                         <div className="flex flex-col items-center">
@@ -3496,16 +3598,10 @@ const CreditNotes: React.FC = () => {
                           </td>
                           <td className="px-5 py-4 text-right">
                             <p className="whitespace-nowrap text-sm font-bold text-[#15803D]">
-                              {formatAmount(creditRefundAmount(note))}
+                              {formatAmount(itemRefundAmount(note))}
                             </p>
                             <p className="mt-1 text-[10px] text-slate-500">
-                              {creditRefundAmount(note) === null
-                                ? "Amount not provided"
-                                : "Whole refund"}
-                            </p>
-                            <p className="mt-1 whitespace-nowrap text-[10px] text-slate-500">
-                              Credit note:{" "}
-                              {formatAmount(creditIssuedAmount(note))}
+                              {itemRefundBasis(note)}
                             </p>
                             <p className="mt-1 text-[10px] text-slate-500">
                               {capitalize(note.refund?.status)} ·{" "}
