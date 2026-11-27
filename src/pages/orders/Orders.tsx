@@ -61,6 +61,118 @@ const itemVariants = {
 const DEFAULT_LOGO_URL =
   "https://www.markupdesigns.net/indiekonnect/storage/logos/MmVFOudCiVU3Y8C0sf2gEEXna5jSKroCDj8xYMo0.png";
 
+// Financial values are calculated in paise to avoid floating-point drift.
+const moneyPaise = (value: unknown): number | null => {
+  if (
+    value == null ||
+    (typeof value !== "number" && typeof value !== "string") ||
+    String(value).trim() === ""
+  )
+    return null;
+  const number = Number(value);
+  const paise = Math.round(number * 100);
+  return Number.isSafeInteger(paise) && paise >= 0 ? paise : null;
+};
+const formatMoney = (value: number) =>
+  value.toLocaleString("en-IN", {
+    style: "currency",
+    currency: "INR",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+const normalizeName = (value: unknown) =>
+  String(value ?? "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .toLowerCase();
+const refundStatus = (value: unknown) => /refund/.test(normalizeName(value));
+
+// Do not guess missing legacy refunds or apply a blanket deduction.
+// Each completed return is counted once at ORDER level, not once per item.
+const getRefundSummary = (order: any) => {
+  const paid = moneyPaise(order?.amount_paid);
+  const records: any[] = Array.isArray(order?.returns) ? order.returns : [];
+  const seen = new Set<string>();
+  const refundedLines = new Set<string>();
+  let refunded = 0;
+  let completed = 0;
+  let missing = false;
+  for (const record of records) {
+    if (normalizeName(record?.refund_status) !== "completed") continue;
+    const key = record.id == null ? null : String(record.id);
+    if (key !== null && seen.has(key)) continue;
+    if (key !== null) seen.add(key);
+    completed++;
+    const amount = moneyPaise(record.total_refund_amount);
+    if (amount === null) missing = true;
+    else refunded += amount;
+    for (const item of Array.isArray(record.items) ? record.items : []) {
+      if (item.order_line_id != null)
+        refundedLines.add(String(item.order_line_id));
+    }
+  }
+  const affectedItems = (Array.isArray(order?.items) ? order.items : []).filter(
+    (item: any) => refundStatus(item.delivery_status),
+  );
+  const hasRefund =
+    completed > 0 ||
+    refundStatus(order?.order_status) ||
+    refundStatus(order?.payment_status) ||
+    affectedItems.length > 0;
+  if (hasRefund && completed === 0) missing = true;
+  if (
+    affectedItems.some(
+      (item: any) => !refundedLines.has(String(item.line_id ?? item.id)),
+    )
+  )
+    missing = true;
+  if (hasRefund && (paid === null || refunded > paid)) missing = true;
+  const refundAmount = missing ? null : refunded / 100;
+  const netAmount = missing || paid === null ? null : (paid - refunded) / 100;
+  return { hasRefund, refundAmount, netAmount, missing };
+};
+
+// Legacy invoice numbers are references only; never use them as evidence that
+// the current item invoice PDF endpoint has an invoice.
+const getLegacyInvoiceNumber = (item: any): string | undefined => {
+  try {
+    const notes = item?.shipping_details?.delivery_notes;
+    const parsed = typeof notes === "string" ? JSON.parse(notes) : notes;
+    const delivery = parsed?.legacy_delivery;
+    if (normalizeName(delivery?.invoice_status) !== "generated")
+      return undefined;
+    const line = parsed?.legacy_delivery_item;
+    if (
+      line?.product_code_sku &&
+      item?.product_code &&
+      String(line.product_code_sku) !== String(item.product_code)
+    )
+      return undefined;
+    return String(delivery?.invoice_number ?? "").trim() || undefined;
+  } catch {
+    return undefined;
+  }
+};
+
+const makeNameOptions = (
+  prefix: string,
+  catalog: { title: string }[],
+  names: (string | undefined)[],
+): CustomSelectOption[] => {
+  const unique = new Map<string, string>();
+  for (const name of [...catalog.map((entry) => entry.title), ...names]) {
+    const key = normalizeName(name);
+    if (key && !unique.has(key)) unique.set(key, String(name).trim());
+  }
+  return [
+    { value: `${prefix}: All`, label: `${prefix}: All` },
+    ...Array.from(unique, ([key, label]) => ({
+      value: `${prefix}: name:${key}`,
+      label,
+    })),
+  ];
+};
+
 /* =====================================================
    SEARCH SETTINGS (API search + debounce)
    ===================================================== */
@@ -294,6 +406,7 @@ const DollarIcon = () => (
 export interface OrderItem {
   id: string;
   invoiceNumber?: string;
+  legacyInvoiceNumber?: string;
   invoice_number?: string;
   shipmentNumber?: string;
   productName: string;
@@ -377,8 +490,7 @@ function itemTrackingNumber(parent: any, item: any): string | undefined {
   if (info) return info.awb;
 
   const manual =
-    item?.courier_tracking_id ??
-    item?.shipping_details?.courier_tracking_id;
+    item?.courier_tracking_id ?? item?.shipping_details?.courier_tracking_id;
 
   if (
     typeof manual !== "string" ||
@@ -413,6 +525,10 @@ export interface Order {
   trackingNumber?: string;
   orderType: string;
   amountPaid: number;
+  refundAmount?: number | null;
+  netPaidAmount?: number | null;
+  hasRefund?: boolean;
+  refundDataMissing?: boolean;
   subtotal: number;
   totalGst: number;
   shippingCharge: number;
@@ -743,7 +859,6 @@ const normalizeOrderDetailsPayload = (raw: any) => {
   return data && typeof data === "object" ? data : null;
 };
 
-
 /**
  * delivery_notes kabhi plain text hota hai, kabhi legacy system ka raw JSON string.
  * JSON ho to usse readable label/value rows me badal do, warna text jaisa hai waisa.
@@ -839,8 +954,8 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
         const initialId = Number(initial?.id);
         const numericId =
           Number.isSafeInteger(initialId) &&
-            initialId > 0 &&
-            (String(initial.order_reference) === id || String(initialId) === id)
+          initialId > 0 &&
+          (String(initial.order_reference) === id || String(initialId) === id)
             ? String(initialId)
             : id;
         const response = await orderApi.getOrderDetails(numericId);
@@ -858,26 +973,33 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
             : [];
           const mergedItems = Array.isArray(data.items)
             ? data.items.map((item: any) => {
-              const old = originalItems.find(
-                (x: any) => Number(x.line_id) === Number(item.line_id),
-              );
-              if (!old) return item;
-              return {
-                ...item,
-                courier_tracking_id:
-                  item.courier_tracking_id ??
-                  (item.indiapost
-                    ? undefined
-                    : itemTrackingNumber(initial, {
-                      ...old,
-                      indiapost: null,
-                    })),
-                shipping_details:
-                  item.shipping_details ?? old.shipping_details,
-              };
-            })
+                const old = originalItems.find(
+                  (x: any) => Number(x.line_id) === Number(item.line_id),
+                );
+                if (!old) return item;
+                return {
+                  ...item,
+                  courier_tracking_id:
+                    item.courier_tracking_id ??
+                    (item.indiapost
+                      ? undefined
+                      : itemTrackingNumber(initial, {
+                          ...old,
+                          indiapost: null,
+                        })),
+                  shipping_details:
+                    item.shipping_details ?? old.shipping_details,
+                  invoice:
+                    item.invoice === undefined ? old.invoice : item.invoice,
+                };
+              })
             : data.items;
-          setOrderDetails({ ...data, items: mergedItems });
+          setOrderDetails({
+            ...initial,
+            ...data,
+            items: mergedItems ?? initial?.items,
+            returns: data.returns ?? initial?.returns,
+          });
           setLastRefreshedAt(new Date());
         } else if (!silent) {
           setError("No data received from API");
@@ -887,8 +1009,8 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
         if (!silent) {
           setError(
             err?.response?.data?.message ||
-            err?.message ||
-            "An error occurred while fetching order details",
+              err?.message ||
+              "An error occurred while fetching order details",
           );
         }
       } finally {
@@ -972,6 +1094,7 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
   const shippingCharge = orderDetails.shipping_charge || 0;
   const totalGst = orderDetails.total_gst || 0;
   const totalPayable = orderDetails.total_payable || 0;
+  const refund = getRefundSummary(orderDetails);
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return "N/A";
@@ -1105,13 +1228,13 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
     rawTimelineItems.length > 0
       ? rawTimelineItems
       : [
-        {
-          timeline: orderDetails?.timeline || {},
-          order_date,
-          confirmed_date: orderDetails?.confirmed_date,
-          product_name: "Order",
-        },
-      ];
+          {
+            timeline: orderDetails?.timeline || {},
+            order_date,
+            confirmed_date: orderDetails?.confirmed_date,
+            product_name: "Order",
+          },
+        ];
 
   const timelineEventMap = new Map<
     string,
@@ -1246,7 +1369,7 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
     lineTotal: item.line_total || 0,
     status: item.delivery_status
       ? item.delivery_status.charAt(0).toUpperCase() +
-      item.delivery_status.slice(1)
+        item.delivery_status.slice(1)
       : "Pending",
     delivery_status: item.delivery_status || "pending",
     image: item.primary_image || undefined,
@@ -1259,6 +1382,7 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
     indiaPost: verifiedItemIndiaPost(orderDetails, item),
     courier_tracking_id: itemTrackingNumber(orderDetails, item),
     courierTrackingNumber: itemTrackingNumber(orderDetails, item),
+    legacyInvoiceNumber: getLegacyInvoiceNumber(item),
     invoiceNumber: item.invoice?.invoice_number || undefined,
     invoice_number: item.invoice?.invoice_number || undefined,
   }));
@@ -1342,10 +1466,11 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
             <button
               type="button"
               onClick={() => setActiveTab("items")}
-              className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${activeTab === "items"
-                ? "bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] text-white shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)]"
-                : "bg-[#F4F8FD] text-[#111827] hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
-                }`}
+              className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${
+                activeTab === "items"
+                  ? "bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] text-white shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)]"
+                  : "bg-[#F4F8FD] text-[#111827] hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
+              }`}
             >
               <FiPackage className="mr-1.5 inline" size={13} />
               Items ({items?.length || 0})
@@ -1353,10 +1478,11 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
             <button
               type="button"
               onClick={() => setActiveTab("details")}
-              className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${activeTab === "details"
-                ? "bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] text-white shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)]"
-                : "bg-[#F4F8FD] text-[#111827] hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
-                }`}
+              className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${
+                activeTab === "details"
+                  ? "bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] text-white shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)]"
+                  : "bg-[#F4F8FD] text-[#111827] hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
+              }`}
             >
               <FiUser className="mr-1.5 inline" size={13} />
               {orderDetails?.order_type === "retail"
@@ -1366,10 +1492,11 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
             <button
               type="button"
               onClick={() => setActiveTab("tracking")}
-              className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${activeTab === "tracking"
-                ? "bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] text-white shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)]"
-                : "bg-[#F4F8FD] text-[#111827] hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
-                }`}
+              className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${
+                activeTab === "tracking"
+                  ? "bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] text-white shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)]"
+                  : "bg-[#F4F8FD] text-[#111827] hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
+              }`}
             >
               <FiTruck className="mr-1.5 inline" size={13} />
               Tracking
@@ -1377,10 +1504,11 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
             <button
               type="button"
               onClick={() => setActiveTab("payment")}
-              className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${activeTab === "payment"
-                ? "bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] text-white shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)]"
-                : "bg-[#F4F8FD] text-[#111827] hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
-                }`}
+              className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${
+                activeTab === "payment"
+                  ? "bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] text-white shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)]"
+                  : "bg-[#F4F8FD] text-[#111827] hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
+              }`}
             >
               <FiCreditCard className="mr-1.5 inline" size={13} />
               Payment
@@ -1515,7 +1643,6 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
                                     {item.courier_tracking_id}
                                   </span>
                                 ) : (
-
                                   <span className="text-xs text-[#6B7280]">
                                     —
                                   </span>
@@ -1546,6 +1673,14 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
                                       {item.invoiceNumber || "Invoice"}
                                     </button>
                                   )}
+                                {!hasInvoice && item.legacyInvoiceNumber && (
+                                  <span
+                                    className="text-[11px] text-[#6B7280]"
+                                    title="Legacy invoice reference; PDF not available from current API"
+                                  >
+                                    {item.legacyInvoiceNumber} (Legacy)
+                                  </span>
+                                )}
                               </td>
                             </tr>
                           );
@@ -1607,6 +1742,36 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
                     </p>
                   </div>
                 </div>
+                {refund.hasRefund && (
+                  <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div className="rounded-xl border border-[#DCE6F2] bg-white p-3">
+                      <p className="text-xs text-[#6B7280]">
+                        Actual Refund Amount
+                      </p>
+                      <p className="mt-1 font-bold text-[#C23B32]">
+                        {refund.refundAmount === null
+                          ? "Not available"
+                          : formatMoney(refund.refundAmount)}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-[#DCE6F2] bg-white p-3">
+                      <p className="text-xs text-[#6B7280]">
+                        Net Amount Retained
+                      </p>
+                      <p className="mt-1 font-bold text-[#111827]">
+                        {refund.netAmount === null
+                          ? "Not available"
+                          : formatMoney(refund.netAmount)}
+                      </p>
+                    </div>
+                    {refund.missing && (
+                      <p className="text-xs text-[#A16207] sm:col-span-2">
+                        Actual refund details are missing or incomplete in the
+                        API. No estimated amount is used.
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -1823,35 +1988,35 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
                       const tone =
                         event.category === "cancel"
                           ? {
-                            line: "bg-[#C23B32]/20",
-                            marker:
-                              "border-[#C23B32]/20 bg-[#FDECEC] text-[#C23B32]",
-                            card: "border-[#C23B32]/15",
-                            title: "text-[#B42318]",
-                          }
+                              line: "bg-[#C23B32]/20",
+                              marker:
+                                "border-[#C23B32]/20 bg-[#FDECEC] text-[#C23B32]",
+                              card: "border-[#C23B32]/15",
+                              title: "text-[#B42318]",
+                            }
                           : event.category === "return"
                             ? {
-                              line: "bg-[#D69E36]/25",
-                              marker:
-                                "border-[#F2C94C]/40 bg-[#FFF7D6] text-[#A16207]",
-                              card: "border-[#F2C94C]/25",
-                              title: "text-[#92400E]",
-                            }
+                                line: "bg-[#D69E36]/25",
+                                marker:
+                                  "border-[#F2C94C]/40 bg-[#FFF7D6] text-[#A16207]",
+                                card: "border-[#F2C94C]/25",
+                                title: "text-[#92400E]",
+                              }
                             : event.category === "buyback"
                               ? {
-                                line: "bg-[#8B5CF6]/20",
-                                marker:
-                                  "border-[#8B5CF6]/20 bg-[#F3EFFF] text-[#6D28D9]",
-                                card: "border-[#8B5CF6]/15",
-                                title: "text-[#6D28D9]",
-                              }
+                                  line: "bg-[#8B5CF6]/20",
+                                  marker:
+                                    "border-[#8B5CF6]/20 bg-[#F3EFFF] text-[#6D28D9]",
+                                  card: "border-[#8B5CF6]/15",
+                                  title: "text-[#6D28D9]",
+                                }
                               : {
-                                line: "bg-[#2D6FE8]/20",
-                                marker:
-                                  "border-[#2D6FE8]/20 bg-[#EAF3FF] text-[#2D6FE8]",
-                                card: "border-[#2D6FE8]/15",
-                                title: "text-[#111827]",
-                              };
+                                  line: "bg-[#2D6FE8]/20",
+                                  marker:
+                                    "border-[#2D6FE8]/20 bg-[#EAF3FF] text-[#2D6FE8]",
+                                  card: "border-[#2D6FE8]/15",
+                                  title: "text-[#111827]",
+                                };
 
                       return (
                         <div
@@ -2089,6 +2254,36 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
                     </span>
                   </div>
                 </div>
+                {refund.hasRefund && (
+                  <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div className="rounded-xl border border-[#DCE6F2] bg-white p-3">
+                      <p className="text-xs text-[#6B7280]">
+                        Actual Refund Amount
+                      </p>
+                      <p className="mt-1 font-bold text-[#C23B32]">
+                        {refund.refundAmount === null
+                          ? "Not available"
+                          : formatMoney(refund.refundAmount)}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-[#DCE6F2] bg-white p-3">
+                      <p className="text-xs text-[#6B7280]">
+                        Net Amount Retained
+                      </p>
+                      <p className="mt-1 font-bold text-[#111827]">
+                        {refund.netAmount === null
+                          ? "Not available"
+                          : formatMoney(refund.netAmount)}
+                      </p>
+                    </div>
+                    {refund.missing && (
+                      <p className="text-xs text-[#A16207] sm:col-span-2">
+                        Actual refund details are missing or incomplete in the
+                        API. No estimated amount is used.
+                      </p>
+                    )}
+                  </div>
+                )}
                 <div className="mt-4 border-t border-[#2D6FE8]/10 pt-4">
                   <h5 className="text-xs font-bold uppercase tracking-wide text-[#111827] mb-3">
                     Order Breakdown
@@ -2482,7 +2677,9 @@ const DispatchPopup: React.FC<DispatchPopupProps> = ({
                       required
                       disabled={loading}
                     >
-                      <option value="" disabled>Select courier</option>
+                      <option value="" disabled>
+                        Select courier
+                      </option>
                       <option value="India Post">India Post</option>
                       <option value="BVC">BVC</option>
                       <option value="Other">Other</option>
@@ -2499,7 +2696,8 @@ const DispatchPopup: React.FC<DispatchPopupProps> = ({
                         htmlFor="dispatch-other-courier-name"
                         className="mb-2 block text-xs font-bold uppercase tracking-wide text-[#111827]"
                       >
-                        Other Courier Name <span className="text-[#C23B32]">*</span>
+                        Other Courier Name{" "}
+                        <span className="text-[#C23B32]">*</span>
                       </label>
                       <input
                         id="dispatch-other-courier-name"
@@ -3042,7 +3240,6 @@ const DeliverPopup: React.FC<DeliverPopupProps> = ({
   );
 };
 
-
 // =====================================================
 // ORDERS TABLE — ORDER-WISE VIEW (items nested inside each order)
 // =====================================================
@@ -3051,6 +3248,7 @@ interface OrdersTableProps {
   onSelectOrder: (order: Order) => void;
   selectedOrderId?: string;
   onFilteredChange?: (orders: Order[], label: string) => void;
+  onAllOrdersLoaded?: (orders: any[]) => void;
   initialLoading?: boolean;
   initialSearchOrderReference?: string | null;
   initialSearchOrderId?: number | null;
@@ -3064,6 +3262,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   onSelectOrder,
   selectedOrderId,
   onFilteredChange,
+  onAllOrdersLoaded,
   initialLoading = false,
   initialSearchOrderReference = null,
   initialSearchOrderId = null,
@@ -3360,6 +3559,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
         .map((item: any) => item?.order ?? item)
         .filter((o: any) => o && typeof o === "object");
       setOrders(extractedOrders);
+      if (!searchTerm) onAllOrdersLoaded?.(extractedOrders);
     } catch (err) {
       if (requestId !== orderRequestIdRef.current) return;
       setError("An error occurred while fetching orders");
@@ -3415,6 +3615,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
 
   /** API order -> one OrderGroup (order with ALL its items nested) */
   const convertToOrderGroup = (apiOrder: any): OrderGroup => {
+    const refund = getRefundSummary(apiOrder);
     const items: OrderItem[] =
       apiOrder.items?.map((item: any) => ({
         id: String(item.line_id || item.id || ""),
@@ -3440,9 +3641,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
         total: `₹${Number(item.line_total || 0).toLocaleString("en-IN")}`,
         unitPrice: item.unit_price || 0,
         lineTotal: item.line_total || 0,
-        status:
-          item.delivery_status?.charAt(0).toUpperCase() +
-          item.delivery_status?.slice(1) || "Pending",
+        status: formatStatus(item.delivery_status || "pending"),
         delivery_status: item.delivery_status || "pending",
         image: item.primary_image || item.product_image || undefined,
         productId: item.product_id,
@@ -3456,6 +3655,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
         indiaPost: verifiedItemIndiaPost(apiOrder, item),
         courier_tracking_id: itemTrackingNumber(apiOrder, item),
         courierTrackingNumber: itemTrackingNumber(apiOrder, item),
+        legacyInvoiceNumber: getLegacyInvoiceNumber(item),
         invoiceNumber: item.invoice?.invoice_number || undefined,
         invoice_number: item.invoice?.invoice_number || undefined,
         invoice: item.invoice || null,
@@ -3467,10 +3667,10 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       orderReference: apiOrder.order_reference,
       date: apiOrder.order_date
         ? new Date(apiOrder.order_date).toLocaleDateString("en-IN", {
-          month: "short",
-          day: "numeric",
-          year: "numeric",
-        })
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+          })
         : "N/A",
       orderDateRaw: apiOrder.order_date ?? null,
       customer: apiOrder.user?.name || "N/A",
@@ -3480,7 +3680,11 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       paymentStatus: apiOrder.payment_status || "N/A",
       orderStatus: apiOrder.order_status || "N/A",
       orderType: apiOrder.order_type || "retail",
-      amountPaid: apiOrder.amount_paid || 0,
+      amountPaid: Number(apiOrder.amount_paid || 0),
+      refundAmount: refund.refundAmount,
+      netPaidAmount: refund.netAmount,
+      hasRefund: refund.hasRefund,
+      refundDataMissing: refund.missing,
       subtotal: apiOrder.subtotal || 0,
       totalGst: apiOrder.total_gst || 0,
       shippingCharge: apiOrder.shipping_charge || 0,
@@ -3570,14 +3774,14 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
 
         if (
           categoryValue !== null &&
-          String(item.categoryId ?? "") !== String(categoryValue)
+          `name:${normalizeName(item.categoryName)}` !== categoryValue
         ) {
           return false;
         }
 
         if (
           brandValue !== null &&
-          String(item.brandId ?? "") !== String(brandValue)
+          `name:${normalizeName(item.brandName)}` !== brandValue
         ) {
           return false;
         }
@@ -3626,8 +3830,9 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     if (loading) return;
     if (allOrderGroups.length === 0) return;
 
-    const searchKey = `${initialSearchOrderReference || ""}-${initialSearchOrderId || ""
-      }`;
+    const searchKey = `${initialSearchOrderReference || ""}-${
+      initialSearchOrderId || ""
+    }`;
 
     if (initialSearchHandledRef.current === searchKey) return;
     initialSearchHandledRef.current = searchKey;
@@ -3686,16 +3891,20 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       parts.push(formatStatus(statusFilter.replace("Status: ", "")));
     }
     if (categoryFilter !== "Category: All") {
-      const cat = categories.find(
-        (c) => String(c.id) === categoryFilter.replace("Category: ", ""),
-      );
-      if (cat) parts.push(cat.title);
+      const cat = makeNameOptions(
+        "Category",
+        categories,
+        allOrderGroups.flatMap((g) => g.items.map((i) => i.categoryName)),
+      ).find((option) => option.value === categoryFilter);
+      parts.push(cat?.label || categoryFilter.replace("Category: name:", ""));
     }
     if (brandFilter !== "Brand: All") {
-      const br = brands.find(
-        (b) => String(b.id) === brandFilter.replace("Brand: ", ""),
-      );
-      if (br) parts.push(br.title);
+      const br = makeNameOptions(
+        "Brand",
+        brands,
+        allOrderGroups.flatMap((g) => g.items.map((i) => i.brandName)),
+      ).find((option) => option.value === brandFilter);
+      parts.push(br?.label || brandFilter.replace("Brand: name:", ""));
     }
     if (dateRangeFilter !== "all") {
       const label = DATE_RANGE_OPTIONS.find(
@@ -3714,6 +3923,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     debouncedSearch,
     categories,
     brands,
+    allOrderGroups,
   ]);
 
   const onFilteredChangeRef = useRef(onFilteredChange);
@@ -3775,18 +3985,20 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     { value: "Order Type: distributor", label: "Distributor" },
   ];
 
-  const categoryOptions: CustomSelectOption[] = [
-    { value: "Category: All", label: "Category: All" },
-    ...categories.map((c) => ({
-      value: `Category: ${c.id}`,
-      label: c.title,
-    })),
-  ];
-
-  const brandOptions: CustomSelectOption[] = [
-    { value: "Brand: All", label: "Brand: All" },
-    ...brands.map((b) => ({ value: `Brand: ${b.id}`, label: b.title })),
-  ];
+  const categoryOptions = makeNameOptions(
+    "Category",
+    categories,
+    allOrderGroups.flatMap((group) =>
+      group.items.map((item) => item.categoryName),
+    ),
+  );
+  const brandOptions = makeNameOptions(
+    "Brand",
+    brands,
+    allOrderGroups.flatMap((group) =>
+      group.items.map((item) => item.brandName),
+    ),
+  );
 
   const dateRangeOptions: CustomSelectOption[] = DATE_RANGE_OPTIONS.map(
     (o) => ({ value: o.value, label: o.label }),
@@ -3915,8 +4127,8 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       console.error("Invoice PDF error:", err);
       toast.error(
         err?.response?.data?.message ||
-        err?.message ||
-        "Failed to load invoice.",
+          err?.message ||
+          "Failed to load invoice.",
       );
     } finally {
       toast.dismiss("invoice-pdf");
@@ -4036,8 +4248,8 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       console.error(err);
       toast.error(
         err?.response?.data?.message ||
-        err?.message ||
-        "Failed to update cancel/return option",
+          err?.message ||
+          "Failed to update cancel/return option",
       );
     } finally {
       setTogglingCancelReturn((prev) => {
@@ -4089,8 +4301,8 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       console.error(err);
       toast.error(
         err?.response?.data?.message ||
-        err?.message ||
-        "Failed to mark as undelivered",
+          err?.message ||
+          "Failed to mark as undelivered",
       );
       await fetchOrders();
     } finally {
@@ -4329,8 +4541,9 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
               handleToggleOrderCancelReturn(group);
             }}
             disabled={isToggling}
-            className={`flex w-full items-center justify-between px-4 py-2 text-left text-xs hover:bg-[#F4F8FD] disabled:opacity-60 ${state === "allowed" ? "text-[#2D6FE8]" : "text-[#6B7280]"
-              }`}
+            className={`flex w-full items-center justify-between px-4 py-2 text-left text-xs hover:bg-[#F4F8FD] disabled:opacity-60 ${
+              state === "allowed" ? "text-[#2D6FE8]" : "text-[#6B7280]"
+            }`}
           >
             <div className="flex items-center gap-2">
               {isToggling ? (
@@ -4511,7 +4724,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       </div>
     );
   };
-
 
   /* =====================================================
      RENDER
@@ -4731,6 +4943,14 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                 <p className="text-sm font-bold text-[#1E40AF]">
                   {group.total}
                 </p>
+                {group.hasRefund && (
+                  <p className="mt-1 text-[11px] font-semibold text-[#C23B32]">
+                    Refund:{" "}
+                    {group.refundAmount == null
+                      ? "Not available"
+                      : formatMoney(group.refundAmount)}
+                  </p>
+                )}
               </div>
 
               <button
@@ -5121,7 +5341,9 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                     {group.userEmail !== "N/A" && (
                       <span className="mr-3">{group.userEmail}</span>
                     )}
-                    {group.userPhone !== "N/A" && <span>{group.userPhone}</span>}
+                    {group.userPhone !== "N/A" && (
+                      <span>{group.userPhone}</span>
+                    )}
                   </p>
                   <button
                     type="button"
@@ -5534,7 +5756,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
 
 interface StatCardProps {
   title: string;
-  value: number;
+  value: number | string;
   subtitle: string;
   icon: React.ReactNode;
   accent: string;
@@ -5746,11 +5968,31 @@ const Orders: React.FC = () => {
     });
   }, [ordersData]);
 
-  const totalEarnings = useMemo(() => {
-    return ordersData.reduce(
-      (sum, order) => sum + (order.total_payable || 0),
-      0,
-    );
+  const earnings = useMemo(() => {
+    let totalPaise = 0;
+    let excluded = 0;
+    const seen = new Set<string>();
+    for (const order of ordersData) {
+      const key = String(order.id ?? order.order_reference ?? "");
+      if (key && seen.has(key)) continue;
+      if (key) seen.add(key);
+      if (
+        ![
+          "paid",
+          "refunded",
+          "partial_refunded",
+          "partially_refunded",
+        ].includes(normalizeName(order.payment_status))
+      )
+        continue;
+      const refund = getRefundSummary(order);
+      if (refund.netAmount === null) {
+        excluded++;
+        continue;
+      }
+      totalPaise += Math.round(refund.netAmount * 100);
+    }
+    return { amount: totalPaise / 100, excluded };
   }, [ordersData]);
 
   const stats = useMemo(() => {
@@ -5885,9 +6127,13 @@ const Orders: React.FC = () => {
         />
 
         <StatCard
-          title="Total Earnings"
-          value={totalEarnings}
-          subtitle="Total amount payable"
+          title="Net Collections"
+          value={formatMoney(earnings.amount)}
+          subtitle={
+            earnings.excluded
+              ? `Partial total · ${earnings.excluded} orders excluded (missing data)`
+              : "Paid amount less completed refunds"
+          }
           icon={<DollarIcon />}
           accent="bg-gradient-to-r from-[#60A5FA] to-[#2563EB]"
           tileClass="bg-[#DBEAFE]"
@@ -5900,11 +6146,12 @@ const Orders: React.FC = () => {
           onSelectOrder={handleSelectOrder}
           selectedOrderId={selectedOrder?.id}
           onFilteredChange={handleFilteredChange}
+          onAllOrdersLoaded={setOrdersData}
           initialLoading={initialOrdersLoading}
           initialSearchOrderReference={initialSearchOrderReference}
           initialSearchOrderId={initialSearchOrderId}
           initialSearchAutoOpenView={initialSearchAutoOpenView}
-          onInitialSearchConsumed={() => { }}
+          onInitialSearchConsumed={() => {}}
         />
       </div>
     </div>
