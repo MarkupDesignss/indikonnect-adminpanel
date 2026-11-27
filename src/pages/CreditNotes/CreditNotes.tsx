@@ -224,6 +224,9 @@ const normalizeCreditNote = (raw: any): CreditNote => {
     shipping_charge: raw.shipping_charge ?? oldOrder.shipping_charge,
     total_payable: raw.total_payable ?? oldOrder.total_payable,
     amount_paid: raw.amount_paid ?? oldOrder.amount_paid,
+    confirmed_at:
+      raw.order_confirmed_at ?? raw.confirmed_at ?? oldOrder.confirmed_at,
+    created_at: raw.order_created_at ?? oldOrder.created_at,
   };
   const refund = {
     ...oldRefund,
@@ -244,32 +247,32 @@ const normalizeCreditNote = (raw: any): CreditNote => {
     refund: Object.values(refund).some((v) => v != null) ? refund : null,
     items:
       raw.product_name != null ||
-        raw.item_total != null ||
-        raw.item_taxable_value != null
+      raw.item_total != null ||
+      raw.item_taxable_value != null
         ? [
-          {
-            order_line_id: raw.order_line_id,
-            product_id: raw.product_id,
-            product_name: raw.product_name,
-            product_slug: raw.product_slug,
-            hsn_code: raw.hsn_code,
-            product_code: raw.product_code,
-            quantity: raw.quantity,
-            unit_price: raw.unit_price,
-            taxable_value: raw.item_taxable_value,
-            gst_rate: raw.gst_rate,
-            cgst: raw.item_cgst ?? raw.gst_breakdown?.cgst,
-            sgst: raw.item_sgst ?? raw.gst_breakdown?.sgst,
-            igst: raw.item_igst ?? raw.gst_breakdown?.igst,
-            product_gst: raw.item_product_gst,
-            shipping_gst: raw.item_shipping_gst,
-            total_gst: raw.item_total_gst,
-            shipping_charge_line: raw.shipping_charge_line,
-            service_charge: raw.service_charge,
-            line_total: raw.item_total,
-            product_line_total: raw.line_total,
-          },
-        ]
+            {
+              order_line_id: raw.order_line_id,
+              product_id: raw.product_id,
+              product_name: raw.product_name,
+              product_slug: raw.product_slug,
+              hsn_code: raw.hsn_code,
+              product_code: raw.product_code,
+              quantity: raw.quantity,
+              unit_price: raw.unit_price,
+              taxable_value: raw.item_taxable_value,
+              gst_rate: raw.gst_rate,
+              cgst: raw.item_cgst ?? raw.gst_breakdown?.cgst,
+              sgst: raw.item_sgst ?? raw.gst_breakdown?.sgst,
+              igst: raw.item_igst ?? raw.gst_breakdown?.igst,
+              product_gst: raw.item_product_gst,
+              shipping_gst: raw.item_shipping_gst,
+              total_gst: raw.item_total_gst,
+              shipping_charge_line: raw.shipping_charge_line,
+              service_charge: raw.service_charge,
+              line_total: raw.item_total,
+              product_line_total: raw.line_total,
+            },
+          ]
         : Array.isArray(raw.items)
           ? raw.items
           : [],
@@ -306,10 +309,10 @@ const creditItemKey = (note: any) =>
   JSON.stringify([
     creditNoteKey(note),
     note.order_line_id ??
-    note.items?.[0]?.order_line_id ??
-    note.s_no ??
-    note._itemIndex ??
-    0,
+      note.items?.[0]?.order_line_id ??
+      note.s_no ??
+      note._itemIndex ??
+      0,
     note._reportRowIndex ?? 0,
   ]);
 
@@ -416,11 +419,14 @@ const itemRefundBasis = (note: any): string =>
       : "Item refund unavailable";
 
 const allocateItemRefunds = (notes: CreditNote[]): CreditNote[] => {
-  const result = notes.map((note) => ({
-    ...note,
-    _itemRefundAmount: null,
-    _itemRefundBasis: "unavailable",
-  }) as CreditNote & RefundAllocation);
+  const result = notes.map(
+    (note) =>
+      ({
+        ...note,
+        _itemRefundAmount: null,
+        _itemRefundBasis: "unavailable",
+      }) as CreditNote & RefundAllocation,
+  );
   const groups = new Map<string, number[]>();
   result.forEach((note, index) => {
     const key = creditRefundKey(note);
@@ -469,7 +475,11 @@ const allocateItemRefunds = (notes: CreditNote[]): CreditNote[] => {
     });
     const remaining = totalPaise - shares.reduce((sum, x) => sum + x.paise, 0);
     const ranked = [...shares].sort((a, b) =>
-      a.remainder === b.remainder ? a.index - b.index : a.remainder > b.remainder ? -1 : 1,
+      a.remainder === b.remainder
+        ? a.index - b.index
+        : a.remainder > b.remainder
+          ? -1
+          : 1,
     );
     for (let i = 0; i < remaining; i++) ranked[i].paise += 1;
     shares.forEach(({ index, paise }) => {
@@ -478,6 +488,140 @@ const allocateItemRefunds = (notes: CreditNote[]): CreditNote[] => {
     });
   }
   return result;
+};
+
+type CreditPdfScope = "item" | "order";
+const creditOrderKey = (note: any): string => {
+  const id = note.order_id ?? note.order?.id;
+  if (id != null && String(id).trim()) return `id:${id}`;
+  const ref = note.order_reference ?? note.order?.order_reference;
+  return ref != null && String(ref).trim() ? `ref:${ref}` : "";
+};
+const getOrderCreditRows = (
+  selected: CreditNote,
+  all: CreditNote[],
+): CreditNote[] => {
+  const key = creditOrderKey(selected);
+  return key ? all.filter((row) => creditOrderKey(row) === key) : [selected];
+};
+// Sum record amounts once, and reject inconsistent/missing amounts instead of guessing.
+const distinctPdfAmounts = (
+  rows: CreditNote[],
+  keyOf: (row: any) => string,
+  amountOf: (row: any) => number | null,
+): number | null => {
+  const amounts = new Map<string, number | null>();
+  for (const row of rows) {
+    const key = keyOf(row);
+    if (!key) return null;
+    const amount = amountOf(row);
+    if (amounts.has(key)) {
+      const old = amounts.get(key);
+      if (old != null && amount != null && old !== amount) return null;
+      if (old == null && amount != null) amounts.set(key, amount);
+    } else amounts.set(key, amount);
+  }
+  return creditSum([...amounts.values()]);
+};
+
+// Calculate only the returned/credited items represented in this report.
+// Never use a refund to populate amount_paid or invoice/credit dates as order dates.
+const returnedOrderTotals = (rows: CreditNote[]) => {
+  const complete =
+    rows.length > 0 &&
+    countMissingCreditItems(rows) === 0 &&
+    rows.every((row) => row.items?.length === 1);
+  const lineKey = (row: any) => {
+    const id = row.order_line_id ?? itemOf(row).order_line_id;
+    return id == null ? (rows.length === 1 ? "single" : "") : String(id);
+  };
+  const sum = (read: (row: CreditNote) => number | null) => {
+    // Multiple credits on the same original line may represent different quantities.
+    // Do not silently count or collapse them without a reliable quantity breakdown.
+    const keys = rows.map(lineKey);
+    if (
+      !complete ||
+      keys.some((key) => !key) ||
+      new Set(keys).size !== keys.length
+    )
+      return null;
+    return creditSum(rows.map(read));
+  };
+  const completedRows = rows.filter(
+    (row: any) =>
+      String(row.refund?.status ?? row.refund_status ?? "").toLowerCase() ===
+      "completed",
+  );
+  return {
+    subtotal: sum((row) => numeric(itemOf(row).product_line_total)),
+    shipping: sum((row) => numeric(itemOf(row).shipping_charge_line)),
+    service: sum((row) => numeric(itemOf(row).service_charge)),
+    gst: sum(itemTax),
+    invoice: sum(itemInvoiceValue),
+    completedRefund: completedRows.length
+      ? distinctPdfAmounts(completedRows, creditRefundKey, creditRefundAmount)
+      : null,
+  };
+};
+
+const orderDisplayFields = (note: CreditNote, rows: CreditNote[]) => {
+  const order: any = (note as any).order ?? {};
+  const refund: any = (note as any).refund ?? {};
+  const totals = returnedOrderTotals(rows);
+  const money = (
+    label: string,
+    original: unknown,
+    fallbackLabel: string,
+    fallback: number | null,
+  ) => {
+    const actual = numeric(original);
+    return actual !== null
+      ? { label, amount: actual }
+      : { label: fallbackLabel, amount: fallback };
+  };
+  const hasDate = (value: unknown) =>
+    value != null &&
+    Boolean(String(value).trim()) &&
+    Number.isFinite(parseReportDate(String(value)).getTime());
+  return {
+    subtotal: money(
+      "Order Subtotal",
+      order.subtotal,
+      "Returned Items Subtotal",
+      totals.subtotal,
+    ),
+    shipping: money(
+      "Order Shipping",
+      order.shipping_charge,
+      "Returned Items Shipping",
+      totals.shipping,
+    ),
+    payable: money(
+      "Order Total Payable",
+      order.total_payable,
+      "Returned Items Invoice Value",
+      totals.invoice,
+    ),
+    paid: money(
+      "Amount Paid",
+      order.amount_paid,
+      "Completed Refund (Order)",
+      totals.completedRefund,
+    ),
+    confirmed: hasDate(order.confirmed_at)
+      ? { label: "Confirmed At", value: formatDateTime(order.confirmed_at) }
+      : {
+          label: "Credit Note Issued At",
+          value: formatDateTime(note.issued_at),
+        },
+    created: hasDate(order.created_at)
+      ? { label: "Created At", value: formatDateTime(order.created_at) }
+      : {
+          label: "Refund Completed At",
+          value: formatDateTime(refund.completed_at),
+        },
+    totals,
+  };
 };
 
 const gstRegistration = (value: unknown): "URP" | "Registered" | "" => {
@@ -533,10 +677,10 @@ const matchesCreditNoteFilters = (
     note?.buyer_address,
     ...(Array.isArray(note?.items)
       ? note.items.flatMap((item: any) => [
-        item.product_name,
-        item.product_code,
-        item.hsn_code,
-      ])
+          item.product_name,
+          item.product_code,
+          item.hsn_code,
+        ])
       : []),
     String(note?.id ?? ""),
     String(note?.order_id ?? ""),
@@ -579,13 +723,13 @@ const reconciliation = (note: any) => {
   const deductions =
     numeric(b?.deductions_total) ??
     (Array.isArray(b?.deductions) &&
-      b.deductions.every((d: any) => numeric(d.amount) !== null)
+    b.deductions.every((d: any) => numeric(d.amount) !== null)
       ? round2(
-        b.deductions.reduce(
-          (sum: number, d: any) => sum + Number(d.amount),
-          0,
-        ),
-      )
+          b.deductions.reduce(
+            (sum: number, d: any) => sum + Number(d.amount),
+            0,
+          ),
+        )
       : null);
   const expected =
     gross !== null && deductions !== null ? round2(gross - deductions) : null;
@@ -1273,7 +1417,9 @@ interface CreditNoteViewModalProps {
   open: boolean;
   note: CreditNote | null;
   onClose: () => void;
-  onDownload: (note: CreditNote) => void;
+  onDownload: (note: CreditNote, scope?: CreditPdfScope) => void;
+  orderItemCount?: number;
+  orderRows?: CreditNote[];
   canDownload?: boolean;
 }
 
@@ -1282,6 +1428,8 @@ const CreditNoteViewModal: React.FC<CreditNoteViewModalProps> = ({
   note,
   onClose,
   onDownload,
+  orderItemCount = 1,
+  orderRows,
   canDownload = false,
 }) => {
   if (!open || !note) return null;
@@ -1289,6 +1437,10 @@ const CreditNoteViewModal: React.FC<CreditNoteViewModalProps> = ({
   const accountType = getCreditNoteAccountType(note);
   const order: any = (note as any).order;
   const refund: any = (note as any).refund;
+  const financial = orderDisplayFields(
+    note,
+    orderRows?.length ? orderRows : [note],
+  );
 
   return (
     <GlobalModal isOpen={open} onClose={onClose} closeOnOverlayClick title="">
@@ -1486,34 +1638,34 @@ const CreditNoteViewModal: React.FC<CreditNoteViewModalProps> = ({
                 </div>
                 <div>
                   <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
-                    {"Subtotal"}
+                    {financial.subtotal.label}
                   </p>
                   <p className="mt-1 text-xs font-semibold text-[#111827]">
-                    {formatAmount(order.subtotal)}
+                    {formatAmount(financial.subtotal.amount)}
                   </p>
                 </div>
                 <div>
                   <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
-                    {"Shipping"}
+                    {financial.shipping.label}
                   </p>
                   <p className="mt-1 text-xs font-semibold text-[#111827]">
-                    {formatAmount(order.shipping_charge)}
+                    {formatAmount(financial.shipping.amount)}
                   </p>
                 </div>
                 <div>
                   <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
-                    {"Total Payable"}
+                    {financial.payable.label}
                   </p>
                   <p className="mt-1 text-xs font-bold text-[#2D6FE8]">
-                    {formatAmount(order.total_payable)}
+                    {formatAmount(financial.payable.amount)}
                   </p>
                 </div>
                 <div>
                   <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
-                    {"Amount Paid"}
+                    {financial.paid.label}
                   </p>
                   <p className="mt-1 text-xs font-semibold text-[#111827]">
-                    {formatAmount(order.amount_paid)}
+                    {formatAmount(financial.paid.amount)}
                   </p>
                 </div>
                 <div>
@@ -1534,18 +1686,18 @@ const CreditNoteViewModal: React.FC<CreditNoteViewModalProps> = ({
                 </div>
                 <div>
                   <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
-                    {"Confirmed At"}
+                    {financial.confirmed.label}
                   </p>
                   <p className="mt-1 text-xs font-semibold text-[#111827]">
-                    {formatDateTime(order.confirmed_at)}
+                    {financial.confirmed.value}
                   </p>
                 </div>
                 <div>
                   <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
-                    {"Created At"}
+                    {financial.created.label}
                   </p>
                   <p className="mt-1 text-xs font-semibold text-[#111827]">
-                    {formatDateTime(order.created_at)}
+                    {financial.created.value}
                   </p>
                 </div>
                 <div>
@@ -1556,7 +1708,29 @@ const CreditNoteViewModal: React.FC<CreditNoteViewModalProps> = ({
                     {order.gateway_transaction_id || "—"}
                   </p>
                 </div>
+                <div>
+                  <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
+                    Returned Items GST (Included)
+                  </p>
+                  <p className="mt-1 text-xs font-semibold text-[#111827]">
+                    {formatAmount(financial.totals.gst)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
+                    Returned Items Service Charge
+                  </p>
+                  <p className="mt-1 text-xs font-semibold text-[#111827]">
+                    {formatAmount(financial.totals.service)}
+                  </p>
+                </div>
               </div>
+              <p className="mt-4 text-[10px] leading-relaxed text-[#6B7280]">
+                Returned-item totals are calculated from all loaded credited
+                lines for this order, regardless of filters. GST is included in
+                the invoice value. Original amount paid and order dates are
+                shown only when supplied by the API.
+              </p>
             </div>
           )}
 
@@ -1871,7 +2045,7 @@ const CreditNoteViewModal: React.FC<CreditNoteViewModalProps> = ({
         </div>
 
         {/* FOOTER */}
-        <div className="flex justify-end gap-2 border-t border-[#DCE6F2] bg-white px-5 py-4 sm:px-6">
+        <div className="flex flex-wrap justify-end gap-2 border-t border-[#DCE6F2] bg-white px-5 py-4 sm:px-6">
           <button
             type="button"
             onClick={onClose}
@@ -1882,11 +2056,20 @@ const CreditNoteViewModal: React.FC<CreditNoteViewModalProps> = ({
           {canDownload && (
             <button
               type="button"
-              onClick={() => onDownload(note)}
+              onClick={() => onDownload(note, "item")}
               className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:from-[#2D6FE8] hover:to-[#2D6FE8]"
             >
               <FiDownload size={15} />
-              {"Download PDF"}
+              {"Item PDF"}
+            </button>
+          )}
+          {canDownload && orderItemCount > 1 && (
+            <button
+              type="button"
+              onClick={() => onDownload(note, "order")}
+              className="flex items-center gap-2 rounded-xl border border-[#2D6FE8]/25 bg-[#EAF3FF] px-5 py-2.5 text-sm font-semibold text-[#2D6FE8] transition hover:bg-[#DCEBFF]"
+            >
+              <FiDownload size={15} /> Whole Order PDF ({orderItemCount})
             </button>
           )}
         </div>
@@ -2013,8 +2196,8 @@ const CreditNotes: React.FC = () => {
       } catch (error: any) {
         toast.error(
           error?.response?.data?.message ||
-          error?.message ||
-          "Unable to fetch credit notes.",
+            error?.message ||
+            "Unable to fetch credit notes.",
         );
       } finally {
         setLoading(false);
@@ -2092,9 +2275,12 @@ const CreditNotes: React.FC = () => {
       invoice: creditSum(matchingNotes.map(itemInvoiceValue)),
       refunded: (() => {
         const completed = matchingNotes.filter(
-          (note) => String(note.refund?.status ?? "").toLowerCase() === "completed",
+          (note) =>
+            String(note.refund?.status ?? "").toLowerCase() === "completed",
         );
-        return completed.length ? creditSum(completed.map(itemRefundAmount)) : 0;
+        return completed.length
+          ? creditSum(completed.map(itemRefundAmount))
+          : 0;
       })(),
       flagged: notes.filter((n) => {
         const r = reconciliation(n);
@@ -2405,7 +2591,7 @@ const CreditNotes: React.FC = () => {
                   max,
                   Math.ceil(
                     String(creditExportCellText(v) ?? "").length /
-                    Math.max(6, (sheet.getColumn(j + 1).width ?? 20) - 3),
+                      Math.max(6, (sheet.getColumn(j + 1).width ?? 20) - 3),
                   ),
                 ),
               1,
@@ -2457,8 +2643,8 @@ const CreditNotes: React.FC = () => {
       console.error("Download credit notes CSV error:", error);
       toast.error(
         error?.response?.data?.message ||
-        error?.message ||
-        "Unable to download credit notes report.",
+          error?.message ||
+          "Unable to download credit notes report.",
       );
     } finally {
       setExportingCsv(false);
@@ -2474,429 +2660,578 @@ const CreditNotes: React.FC = () => {
   // ===================================================
   // PDF — FULL TABLE LAYOUT
   // ===================================================
-  const generateCreditNotePdf = (note: CreditNote) => {
+  const generateCreditNotePdf = (
+    note: CreditNote,
+    scope: CreditPdfScope = "item",
+  ) => {
     if (!canDownloadCreditNotes) {
       toast.error("You do not have permission to download credit note PDF.");
       return;
     }
     try {
+      const orderRows = getOrderCreditRows(note, creditNotes);
+      const whole = scope === "order";
+      const rows = whole ? orderRows : [note];
+      if (!rows.length || rows.some((r) => !r.items?.length)) {
+        toast.error("Credit note item details are unavailable.");
+        return;
+      }
+      if (whole && countMissingCreditItems(rows) > 0) {
+        toast.error(
+          "Some credit note items are missing. Refresh the report before downloading.",
+        );
+        return;
+      }
+      const rowIds = rows.map(
+        (r: any) =>
+          `${creditNoteKey(r)}:${r.order_line_id ?? itemOf(r).order_line_id ?? r.s_no ?? r._itemIndex ?? ""}`,
+      );
+      if (whole && new Set(rowIds).size !== rows.length) {
+        toast.error(
+          "Duplicate credit note lines detected. Please verify the API data.",
+        );
+        return;
+      }
+      const order: any = (note as any).order ?? {};
+      const financial = orderDisplayFields(note, orderRows);
+      const refunds = [
+        ...new Map(rows.map((r) => [creditRefundKey(r), r])).values(),
+      ];
+      const noteNumbers = [
+        ...new Set(rows.map((r) => r.credit_note_number).filter(Boolean)),
+      ];
+      const invoiceNumbers = [
+        ...new Set(rows.map((r) => r.original_invoice_number).filter(Boolean)),
+      ];
+      const sharedItem =
+        !whole &&
+        creditNotes.filter((r) => creditRefundKey(r) === creditRefundKey(note))
+          .length > 1;
+      const title =
+        whole && noteNumbers.length > 1 ? "CREDIT NOTE SUMMARY" : "CREDIT NOTE";
+      const subtitle = whole
+        ? "Whole order - returned / credited items"
+        : "Item-wise copy - not a separately issued note";
       const C = PDF_COLORS;
       const doc = new jsPDF({ unit: "mm", format: "a4" });
       const pageW = doc.internal.pageSize.getWidth();
       const pageH = doc.internal.pageSize.getHeight();
-      const ML = 12;
-      const CW = pageW - ML * 2;
-      const BOTTOM = pageH - 18;
-      const accountType = getCreditNoteAccountType(note);
-      const order: any = (note as any).order;
-      const refund: any = (note as any).refund;
+      const ML = 12,
+        CW = pageW - ML * 2,
+        BOTTOM = pageH - 17;
       let y = 0;
-
-      const ensureSpace = (h: number) => {
-        if (y + h > BOTTOM) {
-          doc.addPage();
-          y = 16;
-        }
-      };
-
-      // HEADER BAND
-      doc.setFillColor(...C.blue);
-      doc.rect(0, 0, pageW, 32, "F");
-      doc.setFillColor(79, 143, 247);
-      doc.rect(0, 32, pageW, 1.2, "F");
-      doc.setTextColor(...C.white);
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(22);
-      doc.text("CREDIT NOTE", ML, 15);
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(9.5);
-      doc.text("IndieKonnect", ML, 23);
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(11);
-      doc.text(pdfVal(note.credit_note_number), pageW - ML, 14, {
-        align: "right",
-      });
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(9);
-      doc.text(`Issued: ${formatDate(note.issued_at)}`, pageW - ML, 21, {
-        align: "right",
-      });
-      doc.text(`Reason: ${capitalize(note.reason)}`, pageW - ML, 27, {
-        align: "right",
-      });
-      y = 42;
-
-      const sectionTitle = (title: string) => {
-        ensureSpace(16);
+      const amount = formatAmountPdf;
+      const sum = (read: (r: CreditNote) => unknown) =>
+        creditSum(rows.map(read));
+      const itemGross = sum(itemInvoiceValue);
+      const itemRefund = sum(itemRefundAmount);
+      const actualRefund = distinctPdfAmounts(
+        rows,
+        creditRefundKey,
+        creditRefundAmount,
+      );
+      const issuedAmount = distinctPdfAmounts(
+        rows,
+        creditNoteKey,
+        creditIssuedAmount,
+      );
+      const completedRows = rows.filter(
+        (r: any) =>
+          String(r.refund?.status ?? "").toLowerCase() === "completed",
+      );
+      const allCompleted = completedRows.length === rows.length;
+      const difference =
+        itemGross !== null && itemRefund !== null
+          ? round2(itemGross - itemRefund)
+          : null;
+      const header = (continued = false) => {
         doc.setFillColor(...C.blue);
-        doc.rect(ML, y, 1.4, 5.2, "F");
+        doc.rect(0, 0, pageW, continued ? 20 : 29, "F");
+        doc.setTextColor(...C.white);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(continued ? 13 : 19);
+        doc.text(title, ML, continued ? 9 : 12);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        doc.text(
+          continued ? "IndieKonnect | Continued" : "IndieKonnect",
+          ML,
+          continued ? 15 : 19,
+        );
+        if (!continued) doc.text(subtitle, ML, 24);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9);
+        doc.text(
+          noteNumbers.length === 1
+            ? pdfVal(noteNumbers[0])
+            : `${noteNumbers.length} issued credit notes`,
+          pageW - ML,
+          10,
+          { align: "right" },
+        );
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        doc.text(
+          `Order: ${pdfVal(order.order_reference ?? (note as any).order_reference)}`,
+          pageW - ML,
+          16,
+          { align: "right" },
+        );
+        y = continued ? 26 : 34;
+      };
+      const nextPage = () => {
+        doc.addPage();
+        header(true);
+      };
+      const ensureSpace = (h: number) => {
+        if (y + h > BOTTOM) nextPage();
+      };
+      const heading = (label: string) => {
+        doc.setFillColor(...C.blue);
+        doc.rect(ML, y, 1.3, 4.4, "F");
         doc.setTextColor(...C.text);
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(10.5);
-        doc.text(title, ML + 3.5, y + 4.2);
-        y += 8;
-      };
-
-      const drawKVTable = (cells: KVCell[]) => {
-        const LABEL_W = 29;
-        const PAIR_W = CW / 2;
-        const rows: KVCell[][] = [];
-        let pending: KVCell | null = null;
-        cells.forEach((cell) => {
-          if (cell.full) {
-            if (pending) {
-              rows.push([pending]);
-              pending = null;
-            }
-            rows.push([cell]);
-          } else if (!pending) pending = cell;
-          else {
-            rows.push([pending, cell]);
-            pending = null;
-          }
-        });
-        if (pending) rows.push([pending]);
-
-        rows.forEach((row) => {
-          const isFull = row.length === 1 && row[0].full;
-          const lastSingle = row.length === 1 && !row[0].full;
-          const measured = row.map((cell) => {
-            const valueW = isFull ? CW - LABEL_W : PAIR_W - LABEL_W;
-            doc.setFont("helvetica", cell.bold ? "bold" : "normal");
-            doc.setFontSize(8.5);
-            const lines = doc.splitTextToSize(pdfVal(cell.value), valueW - 4);
-            return { cell, lines, valueW };
-          });
-          const rowH = Math.max(
-            8,
-            ...measured.map((m) => m.lines.length * 4 + 4),
-          );
-          ensureSpace(rowH);
-          measured.forEach((m, idx) => {
-            const x = ML + idx * PAIR_W;
-            doc.setFillColor(...C.bgSoft);
-            doc.setDrawColor(...C.border);
-            doc.setLineWidth(0.2);
-            doc.rect(x, y, LABEL_W, rowH, "FD");
-            doc.setFont("helvetica", "bold");
-            doc.setFontSize(7.5);
-            doc.setTextColor(...C.muted);
-            doc.text(m.cell.label.toUpperCase(), x + 2, y + 5);
-            doc.setFillColor(...C.white);
-            doc.rect(x + LABEL_W, y, m.valueW, rowH, "FD");
-            doc.setFont("helvetica", m.cell.bold ? "bold" : "normal");
-            doc.setFontSize(8.5);
-            doc.setTextColor(...(m.cell.color || C.text));
-            doc.text(m.lines, x + LABEL_W + 2, y + 5);
-          });
-          if (lastSingle) {
-            const x = ML + PAIR_W;
-            doc.setFillColor(...C.white);
-            doc.setDrawColor(...C.border);
-            doc.rect(x, y, PAIR_W, rowH, "FD");
-          }
-          y += rowH;
-        });
+        doc.setFontSize(10);
+        doc.text(label, ML + 3.5, y + 3.6);
         y += 6;
       };
-
-      const drawTable = (opts: {
-        headers?: string[];
-        rows: string[][];
-        widths: number[];
-        aligns: Array<"left" | "center" | "right">;
-        x?: number;
-        rowStyle?: (rowIndex: number) => TableRowStyle | undefined;
-        zebra?: boolean;
-      }) => {
-        const { headers, rows, widths, aligns, rowStyle, zebra = true } = opts;
-        const startX = opts.x ?? ML;
-        const PAD = 2;
-        const drawHeader = () => {
-          if (!headers) return;
-          ensureSpace(10);
-          let cx = startX;
-          headers.forEach((h, i) => {
-            doc.setFillColor(...C.blue);
-            doc.setDrawColor(...C.blue);
-            doc.rect(cx, y, widths[i], 8, "FD");
+      // Wrap labels AND values and size cells from their actual line count.
+      const kvSection = (label: string, input: KVCell[]) => {
+        const cells = input.filter(
+          (c) =>
+            c.value != null &&
+            c.value !== "" &&
+            c.value !== "-" &&
+            c.value !== "—",
+        );
+        if (!cells.length) return;
+        const pairs: KVCell[][] = [];
+        let pending: KVCell | undefined;
+        for (const cell of cells) {
+          if (cell.full) {
+            if (pending) pairs.push([pending]);
+            pending = undefined;
+            pairs.push([cell]);
+          } else if (pending) {
+            pairs.push([pending, cell]);
+            pending = undefined;
+          } else pending = cell;
+        }
+        if (pending) pairs.push([pending]);
+        const measure = (pair: KVCell[]) =>
+          pair.map((cell) => {
+            const w = pair.length === 1 ? CW : CW / 2;
+            const labelW = 34;
             doc.setFont("helvetica", "bold");
-            doc.setFontSize(8);
-            doc.setTextColor(...C.white);
-            const tx =
-              aligns[i] === "right"
-                ? cx + widths[i] - PAD
-                : aligns[i] === "center"
-                  ? cx + widths[i] / 2
-                  : cx + PAD;
-            doc.text(h.toUpperCase(), tx, y + 5.3, { align: aligns[i] });
-            cx += widths[i];
+            doc.setFontSize(7.3);
+            const labels: string[] = doc.splitTextToSize(
+              cell.label.toUpperCase(),
+              labelW - 4,
+            );
+            doc.setFont("helvetica", cell.bold ? "bold" : "normal");
+            doc.setFontSize(8.1);
+            const values: string[] = doc.splitTextToSize(
+              pdfVal(cell.value),
+              w - labelW - 4,
+            );
+            return { cell, w, labelW, labels, values };
           });
-          y += 8;
-        };
-        drawHeader();
-        rows.forEach((row, rIdx) => {
-          const style = rowStyle?.(rIdx);
-          doc.setFont("helvetica", style?.bold ? "bold" : "normal");
-          doc.setFontSize(8.5);
-          const wrapped = row.map((cell, i) =>
-            String(cell)
+        const height = (pair: ReturnType<typeof measure>) =>
+          Math.max(
+            6.5,
+            ...pair.map(
+              (c) => Math.max(c.labels.length, c.values.length) * 3.5 + 2.5,
+            ),
+          );
+        ensureSpace(6 + height(measure(pairs[0])));
+        heading(label);
+        for (const pair of pairs) {
+          const measured = measure(pair),
+            h = height(measured);
+          if (y + h > BOTTOM) {
+            nextPage();
+            heading(`${label} (continued)`);
+          }
+          let x = ML;
+          for (const c of measured) {
+            doc.setDrawColor(...C.border);
+            doc.setLineWidth(0.15);
+            doc.setFillColor(...C.bgSoft);
+            doc.rect(x, y, c.labelW, h, "FD");
+            doc.setFillColor(...C.white);
+            doc.rect(x + c.labelW, y, c.w - c.labelW, h, "FD");
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(7.3);
+            doc.setTextColor(...C.muted);
+            c.labels.forEach((v, i) => doc.text(v, x + 2, y + 3.9 + i * 3.5));
+            doc.setFont("helvetica", c.cell.bold ? "bold" : "normal");
+            doc.setFontSize(8.1);
+            doc.setTextColor(...(c.cell.color ?? C.text));
+            c.values.forEach((v, i) =>
+              doc.text(v, x + c.labelW + 2, y + 3.9 + i * 3.5),
+            );
+            x += c.w;
+          }
+          y += h;
+        }
+        y += 4;
+      };
+      // Keep the section title, header and first row together; repeat header on new pages.
+      const table = (
+        label: string,
+        headers: string[],
+        data: string[][],
+        widths: number[],
+        right: number[] = [],
+        rowStyle?: (index: number) => TableRowStyle | undefined,
+      ) => {
+        if (!data.length) return;
+        const wrap = (values: string[], bold: boolean, size: number) => {
+          doc.setFont("helvetica", bold ? "bold" : "normal");
+          doc.setFontSize(size);
+          return values.map((v, i) =>
+            v
               .split("\n")
-              .flatMap((part) =>
-                doc.splitTextToSize(part, widths[i] - PAD * 2),
+              .flatMap(
+                (line) => doc.splitTextToSize(line, widths[i] - 4) as string[],
               ),
           );
-          const rowH = Math.max(
-            8,
-            ...wrapped.map((lines) => lines.length * 4 + 4),
-          );
-          if (y + rowH > BOTTOM) {
-            doc.addPage();
-            y = 16;
-            drawHeader();
-          }
-          let cx = startX;
-          row.forEach((_, i) => {
-            const fill =
-              style?.fill || (zebra && rIdx % 2 === 1 ? C.zebra : C.white);
-            doc.setFillColor(...fill);
+        };
+        const headerLines = wrap(headers, true, 7.5);
+        const hHeader = Math.max(
+          7,
+          ...headerLines.map((ls) => ls.length * 3.3 + 3),
+        );
+        const rowHeight = (ls: string[][]) =>
+          Math.max(7, ...ls.map((l) => l.length * 3.4 + 3));
+        const draw = (
+          lines: string[][],
+          h: number,
+          isHeader: boolean,
+          idx: number,
+        ) => {
+          const st = isHeader
+            ? { bold: true, fill: C.blue, color: C.white }
+            : rowStyle?.(idx);
+          let x = ML;
+          lines.forEach((ls, i) => {
+            doc.setFillColor(...(st?.fill ?? (idx % 2 ? C.zebra : C.white)));
             doc.setDrawColor(...C.border);
-            doc.setLineWidth(0.2);
-            doc.rect(cx, y, widths[i], rowH, "FD");
-            const lines = wrapped[i];
-            lines.forEach((line: string, lIdx: number) => {
-              const isSub = !style?.bold && i === 1 && lIdx > 0 && !!headers;
-              doc.setFont(
-                "helvetica",
-                style?.bold && !isSub ? "bold" : "normal",
-              );
-              doc.setFontSize(isSub ? 7.5 : 8.5);
-              if (isSub) doc.setTextColor(...C.muted);
-              else doc.setTextColor(...(style?.color || C.text));
-              const tx =
-                aligns[i] === "right"
-                  ? cx + widths[i] - PAD
-                  : aligns[i] === "center"
-                    ? cx + widths[i] / 2
-                    : cx + PAD;
-              doc.text(line, tx, y + 5 + lIdx * 4, { align: aligns[i] });
-            });
-            cx += widths[i];
+            doc.setLineWidth(0.15);
+            doc.rect(x, y, widths[i], h, "FD");
+            doc.setFont("helvetica", st?.bold ? "bold" : "normal");
+            doc.setFontSize(isHeader ? 7.5 : 8);
+            doc.setTextColor(...(st?.color ?? C.text));
+            ls.forEach((v, j) =>
+              doc.text(
+                v,
+                right.includes(i) ? x + widths[i] - 2 : x + 2,
+                y + 4 + j * 3.4,
+                { align: right.includes(i) ? "right" : "left" },
+              ),
+            );
+            x += widths[i];
           });
-          y += rowH;
+          y += h;
+        };
+        const first = wrap(data[0], Boolean(rowStyle?.(0)?.bold), 8);
+        ensureSpace(6 + hHeader + rowHeight(first));
+        heading(label);
+        draw(headerLines, hHeader, true, 0);
+        data.forEach((r, i) => {
+          const lines = wrap(r, Boolean(rowStyle?.(i)?.bold), 8),
+            h = rowHeight(lines);
+          if (y + h > BOTTOM) {
+            nextPage();
+            heading(`${label} (continued)`);
+            draw(headerLines, hHeader, true, 0);
+          }
+          draw(lines, h, false, i);
         });
-        y += 6;
+        y += 4;
       };
-
-      // 1. DOCUMENT + BUYER DETAILS
-      sectionTitle("Document Details");
-      drawKVTable([
+      header();
+      kvSection("Document & Buyer Details", [
         {
           label: "Credit Note No.",
-          value: note.credit_note_number,
+          value: noteNumbers.join(", "),
           bold: true,
+          full: noteNumbers.length > 1,
         },
-        { label: "Issued Date", value: formatDate(note.issued_at) },
-        { label: "Orig. Invoice", value: note.original_invoice_number },
+        {
+          label: "Issued Date",
+          value: [...new Set(rows.map((r) => formatDate(r.issued_at)))].join(
+            ", ",
+          ),
+        },
+        {
+          label: "Original Invoice(s)",
+          value: invoiceNumbers.join(", "),
+          full: invoiceNumbers.length > 2,
+        },
         {
           label: "Invoice Date",
-          value: formatDate((note as any).invoice_date),
+          value: [...new Set(rows.map((r) => formatDate(r.invoice_date)))].join(
+            ", ",
+          ),
         },
-        { label: "Order ID", value: note.order_id },
-        { label: "Order Ref", value: order?.order_reference },
-        { label: "Reason", value: capitalize(note.reason) },
-      ]);
-
-      sectionTitle("Buyer Details");
-      drawKVTable([
-        { label: "Name", value: note.buyer_name || "Unknown", bold: true },
-        { label: "Account Type", value: getAccountTypeLabel(accountType) },
+        { label: "Order ID", value: note.order_id ?? order.id },
+        {
+          label: "Reason",
+          value: [...new Set(rows.map((r) => capitalize(r.reason)))].join(", "),
+        },
+        { label: "Buyer Name", value: note.buyer_name, bold: true },
+        {
+          label: "Buyer Type",
+          value: getAccountTypeLabel(getCreditNoteAccountType(note)),
+        },
         { label: "Email", value: note.buyer_email },
-        { label: "State", value: note.buyer_state },
         { label: "GSTIN", value: note.buyer_gstin },
-        ...(note.buyer_address
-          ? [
-            {
-              label: "Address",
-              value: note.buyer_address,
-              full: true,
-            } as KVCell,
-          ]
-          : []),
+        { label: "State", value: note.buyer_state },
+        { label: "Place of Supply", value: creditPos(note) },
+        { label: "Address", value: note.buyer_address, full: true },
       ]);
-
-      // 2. ORDER DETAILS
-      if (order) {
-        sectionTitle("Order Details");
-        drawKVTable([
-          { label: "Order Ref", value: order.order_reference, bold: true },
-          { label: "Order Type", value: getAccountTypeLabel(order.order_type) },
-          { label: "Order Status", value: capitalize(order.status) },
-          { label: "Payment Via", value: capitalize(order.payment_gateway) },
-          { label: "Subtotal", value: formatAmountPdf(order.subtotal) },
-          { label: "Shipping", value: formatAmountPdf(order.shipping_charge) },
+      kvSection("Order Details", [
+        { label: "Order Type", value: capitalize(order.order_type) },
+        { label: "Order Status", value: capitalize(order.status) },
+        { label: "Delivery Status", value: capitalize(order.delivery_status) },
+        { label: "Return Status", value: capitalize(order.return_status) },
+        { label: "Payment Gateway", value: capitalize(order.payment_gateway) },
+        { label: "Payment ID", value: order.gateway_transaction_id },
+        {
+          label: financial.subtotal.label,
+          value: amount(financial.subtotal.amount),
+        },
+        {
+          label: financial.shipping.label,
+          value: amount(financial.shipping.amount),
+        },
+        {
+          label: financial.payable.label,
+          value: amount(financial.payable.amount),
+        },
+        { label: financial.paid.label, value: amount(financial.paid.amount) },
+        { label: financial.confirmed.label, value: financial.confirmed.value },
+        { label: financial.created.label, value: financial.created.value },
+        {
+          label: "Returned Items GST (Included)",
+          value: amount(financial.totals.gst),
+        },
+        {
+          label: "Returned Items Service Charge",
+          value: amount(financial.totals.service),
+        },
+      ]);
+      const itemData = rows.map((r, i) => {
+        const it = itemOf(r);
+        return [
+          String(i + 1),
+          `${pdfVal(it.product_name)}\nCode: ${pdfVal(it.product_code)} | HSN: ${pdfVal(it.hsn_code)}\nInvoice: ${pdfVal(r.original_invoice_number)}\nLine ID: ${pdfVal(r.order_line_id ?? it.order_line_id)}${noteNumbers.length > 1 ? `\nCN: ${pdfVal(r.credit_note_number)}` : ""}`,
+          pdfVal(it.quantity),
+          amount(it.unit_price),
+          amount(it.shipping_charge_line),
+          amount(itemTax(r)),
+          amount(itemInvoiceValue(r)),
+          amount(itemRefundAmount(r)),
+        ];
+      });
+      table(
+        whole ? "Credited Items - Whole Order" : "Selected Credit Note Item",
+        [
+          "No.",
+          "Product / Invoice",
+          "Qty",
+          "Unit Price",
+          "Shipping",
+          "GST",
+          "Invoice Value",
+          "Item Refund*",
+        ],
+        itemData,
+        [9, 51, 9, 22, 20, 20, 27, 28],
+        [2, 3, 4, 5, 6, 7],
+      );
+      const taxRows = rows.map((r) => {
+        const it = itemOf(r);
+        return [
+          pdfVal(it.product_name),
+          it.gst_rate == null ? "-" : `${it.gst_rate}%`,
+          amount(it.taxable_value),
+          amount(itemTaxable(r)),
+          amount(it.product_gst),
+          amount(it.shipping_gst),
+          amount(it.cgst),
+          amount(it.sgst),
+          amount(it.igst),
+        ];
+      });
+      table(
+        "Item GST Breakdown",
+        [
+          "Product",
+          "Rate",
+          "Product Taxable",
+          "Taxable incl. Ship",
+          "Product GST",
+          "Shipping GST",
+          "CGST",
+          "SGST",
+          "IGST",
+        ],
+        taxRows,
+        [36, 12, 23, 25, 20, 20, 15, 15, 20],
+        [1, 2, 3, 4, 5, 6, 7, 8],
+      );
+      const financialRows: string[][] = [
+        [
+          "Product line total",
+          amount(sum((r) => itemOf(r).product_line_total)),
+        ],
+        [
+          "Shipping (GST inclusive)",
+          amount(sum((r) => itemOf(r).shipping_charge_line)),
+        ],
+        [
+          "Service charge (reported)",
+          amount(sum((r) => itemOf(r).service_charge)),
+        ],
+        ["Taxable value including shipping", amount(sum(itemTaxable))],
+        [
+          "CGST / SGST / IGST",
+          `${amount(sum((r) => itemOf(r).cgst))} / ${amount(sum((r) => itemOf(r).sgst))} / ${amount(sum((r) => itemOf(r).igst))}`,
+        ],
+        ["Total GST", amount(sum(itemTax))],
+        [
+          whole ? "Total credited-item invoice value" : "Item invoice value",
+          amount(itemGross),
+        ],
+        [
+          whole
+            ? "Recorded credit note amount(s)"
+            : sharedItem
+              ? "Recorded credit note amount (whole note)"
+              : "Recorded credit note amount",
+          amount(issuedAmount),
+        ],
+        [
+          whole
+            ? "Recorded refund total (unique refunds)"
+            : sharedItem
+              ? "Recorded refund (whole refund)"
+              : "Recorded refund",
+          amount(actualRefund),
+        ],
+        [
+          whole && allCompleted
+            ? "Net completed refund for this scope*"
+            : "Item refund allocation*",
+          amount(itemRefund),
+        ],
+        [
+          "Invoice value less allocated refund (difference)",
+          amount(difference),
+        ],
+      ];
+      table(
+        "Financial Summary",
+        ["Description", "Amount"],
+        financialRows,
+        [CW - 76, 76],
+        [1],
+        (i) =>
+          i === 9
+            ? { bold: true, fill: C.blueLight, color: C.blue }
+            : undefined,
+      );
+      for (const r of refunds) {
+        const ref: any = (r as any).refund ?? {};
+        kvSection("Refund Details", [
+          { label: "Refund ID", value: ref.id ?? r.refund_id },
+          { label: "Status", value: capitalize(ref.status) },
           {
-            label: "Total Payable",
-            value: formatAmountPdf(order.total_payable),
+            label: "Recorded Refund",
+            value: amount(creditRefundAmount(r)),
             bold: true,
-            color: C.blue,
           },
-          { label: "Amount Paid", value: formatAmountPdf(order.amount_paid) },
-          { label: "Delivery", value: capitalize(order.delivery_status) },
-          { label: "Return Status", value: capitalize(order.return_status) },
-          { label: "Confirmed At", value: formatDateTime(order.confirmed_at) },
-          { label: "Created At", value: formatDateTime(order.created_at) },
-          {
-            label: "Gateway Txn ID",
-            value: order.gateway_transaction_id,
-            full: true,
-          },
+          { label: "Method", value: capitalize(ref.refund_method) },
+          { label: "Completed At", value: formatDateTime(ref.completed_at) },
+          { label: "Gateway Reference", value: ref.gateway_reference },
         ]);
-      }
-
-      // 3. REFUND DETAILS
-      if (refund) {
-        sectionTitle("Refund Details");
-        drawKVTable([
-          { label: "Refund ID", value: refund.id ?? note.refund_id },
-          { label: "Status", value: capitalize(refund.status) },
-          {
-            label: "Item Refund Amount (allocated)",
-            value: formatAmountPdf(itemRefundAmount(note)),
-            bold: true,
-            color: C.blue,
-          },
-          { label: "Item Refund Basis", value: itemRefundBasis(note) },
-          { label: "Actual Refund (whole refund)", value: formatAmountPdf(creditRefundAmount(note)) },
-          { label: "Method", value: capitalize(refund.refund_method) },
-          { label: "Completed At", value: formatDateTime(refund.completed_at) },
-          { label: "Gateway Ref", value: refund.gateway_reference },
-        ]);
-        const breakdown = refund.deduction_breakdown;
+        const breakdown = ref.deduction_breakdown;
         if (breakdown) {
-          const bRows: string[][] = [];
+          const deductions: string[][] = [];
           if (breakdown.gross_refund)
-            bRows.push([
-              "Gross Refund",
-              formatAmountPdf(breakdown.gross_refund.total),
+            deductions.push([
+              "Gross refund",
+              amount(breakdown.gross_refund.total),
             ]);
           if (Array.isArray(breakdown.deductions))
             breakdown.deductions.forEach((d: any) =>
-              bRows.push([
-                `Less: ${pdfVal(d.label)}`,
-                `- ${formatAmountPdf(d.amount)}`,
-              ]),
+              deductions.push([pdfVal(d.label), amount(d.amount)]),
             );
-          bRows.push([
-            "Net Refund (reported)",
-            formatAmountPdf(breakdown.net_refund),
-          ]);
-          const rec = reconciliation(note);
-          if (rec.difference !== null && Math.abs(rec.difference) > 0.01) {
-            bRows.push([
-              "Calculated: gross less listed deductions",
-              formatAmountPdf(rec.expected),
+          if (numeric(breakdown.net_refund) !== null)
+            deductions.push([
+              "Reported net refund",
+              amount(breakdown.net_refund),
             ]);
-            bRows.push([
-              "Actual refund (recorded)",
-              formatAmountPdf(rec.actual),
-            ]);
-            bRows.push([
-              "Difference - review required",
-              formatAmountPdf(rec.difference),
-            ]);
-          }
-          sectionTitle("Refund Deduction Breakdown");
-          drawTable({
-            headers: ["Description", "Amount"],
-            rows: bRows,
-            widths: [CW - 50, 50],
-            aligns: ["left", "right"],
-            rowStyle: (i) =>
-              i === bRows.length - 1
-                ? { bold: true, fill: C.blueLight, color: C.blue }
-                : undefined,
-          });
+          table(
+            "Reported Refund Deductions",
+            ["Description", "Amount"],
+            deductions,
+            [CW - 55, 55],
+            [1],
+          );
         }
       }
-
-      // 4. ITEMS TABLE
-      sectionTitle("Selected Credit Note Item");
-      const items = note.items || [];
-      if (items.length > 0) {
-        drawTable({
-          headers: ["S.No", "Product", "Qty", "Taxable", "GST %", "Total"],
-          rows: items.map((item, i) => [
-            String(i + 1),
-            `${item.product_name || "Product"}\nCode: ${pdfVal(item.product_code)}\nHSN: ${pdfVal((item as any).hsn_code)}`,
-            String(item.quantity),
-            formatAmountPdf(item.taxable_value),
-            `${item.gst_rate}%`,
-            formatAmountPdf(item.line_total),
-          ]),
-          widths: [12, 76, 14, 32, 16, 36],
-          aligns: ["center", "left", "center", "right", "center", "right"],
-        });
-      } else {
-        drawTable({
-          rows: [["No line items available for this credit note."]],
-          widths: [CW],
-          aligns: ["center"],
-          zebra: false,
-        });
-      }
-
-      // 5. TAX SUMMARY + FINAL AMOUNT
-      const TAX_W = 96;
-      const taxRows: string[][] = [
-        ["Taxable Value", formatAmountPdf(itemTaxable(note))],
-        ["CGST", formatAmountPdf(numeric(itemOf(note).cgst))],
-        ["SGST", formatAmountPdf(numeric(itemOf(note).sgst))],
-        ["IGST", formatAmountPdf(numeric(itemOf(note).igst))],
-        ["Total GST", formatAmountPdf(itemTax(note))],
-        ["Credit Note Amount (whole note)", formatAmountPdf(note.amount)],
+      const footnotes = [
+        "* Item refunds are allocated by invoice value where the API supplies only a shared refund. They are estimates, not separate gateway settlements.",
+        "Order Details uses all loaded credited lines for the order when original order totals are missing. Financial Summary below the item table uses only the selected PDF scope. Original amount paid, order dates and deduction reasons are not inferred.",
+        ...(whole
+          ? [
+              "Whole-order report includes all loaded credit note rows for this order, independent of table filters. Recorded amounts are counted once per credit note / refund.",
+            ]
+          : [
+              "Item-wise copy retains the original issued credit note number; it does not create a new credit note.",
+            ]),
+        "The invoice/refund difference is not a verified deduction breakdown. Amounts are in INR.",
       ];
-      ensureSpace(taxRows.length * 8 + 12);
-      sectionTitle("Item GST Breakdown");
-      drawTable({
-        rows: taxRows,
-        widths: [TAX_W / 2, TAX_W / 2],
-        aligns: ["left", "right"],
-        x: pageW - ML - TAX_W,
-        zebra: false,
-        rowStyle: (i) => {
-          if (i === taxRows.length - 1)
-            return { bold: true, fill: C.blue, color: C.white };
-          if (i === taxRows.length - 2)
-            return { bold: true, fill: C.blueLight, color: C.blue };
-          return undefined;
-        },
-      });
-
-      // FOOTER ON EVERY PAGE
-      const totalPages = doc.getNumberOfPages();
-      for (let p = 1; p <= totalPages; p++) {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(7.8);
+      const lines = footnotes.flatMap(
+        (v) => doc.splitTextToSize(v, CW) as string[],
+      );
+      ensureSpace(6 + lines.length * 3.4);
+      heading("Notes");
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(7.8);
+      doc.setTextColor(...C.muted);
+      lines.forEach((line, i) => doc.text(line, ML, y + 3 + i * 3.4));
+      const pages = doc.getNumberOfPages();
+      for (let p = 1; p <= pages; p++) {
         doc.setPage(p);
-        const fy = pageH - 10;
         doc.setDrawColor(...C.border);
-        doc.setLineWidth(0.3);
-        doc.line(ML, fy - 4, pageW - ML, fy - 4);
+        doc.line(ML, pageH - 13, pageW - ML, pageH - 13);
         doc.setFont("helvetica", "normal");
         doc.setFontSize(7.5);
         doc.setTextColor(...C.muted);
-        doc.text("This credit note is generated electronically.", ML, fy);
-        doc.text(`Refund ID: ${note.refund_id ?? "-"}`, pageW / 2, fy, {
-          align: "center",
-        });
-        doc.text(`Page ${p} of ${totalPages}`, pageW - ML, fy, {
+        doc.text(
+          "Electronically generated credit note copy / report",
+          ML,
+          pageH - 8,
+        );
+        doc.text(`Page ${p} of ${pages}`, pageW - ML, pageH - 8, {
           align: "right",
         });
       }
-
-      doc.save(
-        `${note.credit_note_number}-${(note as any).order_line_id ?? "item"}.pdf`,
+      const name = whole
+        ? `${order.order_reference ?? note.order_id ?? note.credit_note_number}-whole-credit-notes`
+        : `${note.credit_note_number}-${note.original_invoice_number ?? "invoice"}-${note.order_line_id ?? "item"}`;
+      doc.save(`${String(name).replace(/[^a-zA-Z0-9_-]/g, "-")}.pdf`);
+      toast.success(
+        whole
+          ? "Whole-order credit note PDF downloaded."
+          : "Item credit note PDF downloaded.",
       );
-      toast.success("Credit note PDF downloaded successfully.");
     } catch (error) {
       console.error("Generate credit note PDF error:", error);
       toast.error("Unable to generate PDF.");
@@ -3270,17 +3605,17 @@ const CreditNotes: React.FC = () => {
                   ? [["eq", "Is exactly"]]
                   : field.kind === "text"
                     ? [
-                      ["eq", "Is exactly"],
-                      ["contains", "Contains"],
-                      ["empty", "Is missing"],
-                    ]
+                        ["eq", "Is exactly"],
+                        ["contains", "Contains"],
+                        ["empty", "Is missing"],
+                      ]
                     : [
-                      ["eq", "Equals"],
-                      ["gte", "At least / on or after"],
-                      ["lte", "At most / on or before"],
-                      ["between", "Between"],
-                      ["empty", "Is missing"],
-                    ];
+                        ["eq", "Equals"],
+                        ["gte", "At least / on or after"],
+                        ["lte", "At most / on or before"],
+                        ["between", "Between"],
+                        ["empty", "Is missing"],
+                      ];
                 const inputClass =
                   "min-w-0 w-full rounded-lg border border-[#DCE6F2] bg-white px-3 py-2 text-sm text-slate-800";
                 return (
@@ -3347,11 +3682,11 @@ const CreditNotes: React.FC = () => {
                             {(rule.field === "gstType"
                               ? ["URP", "Registered"]
                               : [
-                                "Credit Note Unregistered",
-                                "Credit Note Registered",
-                                "Other Credit Notes",
-                                "Classification unavailable",
-                              ]
+                                  "Credit Note Unregistered",
+                                  "Credit Note Registered",
+                                  "Other Credit Notes",
+                                  "Classification unavailable",
+                                ]
                             ).map((v) => (
                               <option key={v} value={v}>
                                 {v}
@@ -3406,10 +3741,11 @@ const CreditNotes: React.FC = () => {
             </div>
             {/* TABLE */}
             <p className="px-4 py-2 text-xs text-slate-500">
-              Item refunds are allocated from the recorded refund in proportion to
-              invoice value before filtering. Allocated amounts are estimates, not
-              gateway-confirmed item refunds. Exports also preserve recorded whole
-              refund and credit note amounts once per record.
+              Item refunds are allocated from the recorded refund in proportion
+              to invoice value before filtering. Allocated amounts are
+              estimates, not gateway-confirmed item refunds. Exports also
+              preserve recorded whole refund and credit note amounts once per
+              record.
             </p>
             <p className="px-4 py-2 text-[10px] font-medium text-[#6B7280] sm:hidden">
               {"Swipe horizontally to view all table columns"}
@@ -3442,7 +3778,7 @@ const CreditNotes: React.FC = () => {
                 </thead>
                 <tbody>
                   {initialCreditNotesLoading ||
-                    (loading && creditNotes.length === 0) ? (
+                  (loading && creditNotes.length === 0) ? (
                     <tr>
                       <td colSpan={11} className="px-5 py-16 text-center">
                         <div className="flex flex-col items-center">
@@ -3621,13 +3957,31 @@ const CreditNotes: React.FC = () => {
                               {canDownloadCreditNotes && (
                                 <button
                                   type="button"
-                                  onClick={() => generateCreditNotePdf(note)}
-                                  title={"Download PDF"}
+                                  onClick={() =>
+                                    generateCreditNotePdf(note, "item")
+                                  }
+                                  title={"Download item credit note PDF"}
+                                  aria-label="Download item credit note PDF"
                                   className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#2D6FE8]/20 bg-[#EAF3FF] text-[#2D6FE8] transition hover:bg-[#2D6FE8] hover:text-white"
                                 >
                                   <FiDownload size={15} />
                                 </button>
                               )}
+                              {canDownloadCreditNotes &&
+                                getOrderCreditRows(note, creditNotes).length >
+                                  1 && (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      generateCreditNotePdf(note, "order")
+                                    }
+                                    title="Download whole order credit notes PDF"
+                                    aria-label="Download whole order credit notes PDF"
+                                    className="flex h-9 items-center justify-center gap-1 rounded-xl border border-[#2D6FE8]/20 bg-[#EAF3FF] px-2 text-[10px] font-bold text-[#2D6FE8] transition hover:bg-[#2D6FE8] hover:text-white"
+                                  >
+                                    <FiDownload size={13} /> All
+                                  </button>
+                                )}
                             </div>
                           </td>
                         </motion.tr>
@@ -3697,6 +4051,14 @@ const CreditNotes: React.FC = () => {
       <CreditNoteViewModal
         open={viewOpen}
         note={selectedNote}
+        orderItemCount={
+          selectedNote
+            ? getOrderCreditRows(selectedNote, creditNotes).length
+            : 0
+        }
+        orderRows={
+          selectedNote ? getOrderCreditRows(selectedNote, creditNotes) : []
+        }
         canDownload={canDownloadCreditNotes}
         onClose={() => {
           setViewOpen(false);
